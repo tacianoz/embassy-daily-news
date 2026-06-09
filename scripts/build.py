@@ -174,13 +174,20 @@ THEMES = {
         "color": "#e67e22",
         "icon": "⚡",
         "keywords": [
-            "energy", "oil", "natural gas", "petroleum", "crude", "coal",
-            "solar", "solar power", "rooftop solar", "wind", "wind power",
+            "energy", "energy transition", "natural gas", "petroleum", "coal",
+            # petróleo — termos específicos (evita falsos positivos como "hot oil")
+            "crude oil", "oil price", "oil prices", "oil and gas", "oilfield",
+            "oil import", "oil imports", "oil output", "oil production",
+            "oil demand", "fuel price", "refinery", "opec", "lng",
+            # renováveis
+            "solar power", "rooftop solar", "solar energy", "wind power",
             "wind energy", "wind farm", "offshore wind", "renewable",
-            "renewables", "clean energy", "power sector", "electricity",
-            "nuclear", "nuclear power", "hydrogen", "green hydrogen",
-            "refinery", "opec", "lng", "electric vehicle", "power grid",
-            "thermal power", "hydropower", "geothermal",
+            "renewables", "clean energy", "hydrogen", "green hydrogen",
+            "hydropower", "geothermal",
+            # eletricidade / nuclear (energia, não armas)
+            "power sector", "power plant", "power grid", "electricity",
+            "thermal power", "nuclear power", "nuclear reactor",
+            "nuclear plant", "nuclear energy", "electric vehicle",
             # bioenergia
             "biofuel", "ethanol", "ethanol blending", "ethanol blend",
             "e10", "e20", "e27", "e85", "e100", "biogas",
@@ -850,36 +857,59 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
                     break
     candidates = candidates[:240]
 
-    # ---- Chamada 1: NOTAS (sem resumo => barato e confiável) ----
+    # ---- Chamada 1: NOTA + TEMAS (a IA entende o texto e recategoriza) ----
     listing = "\n".join(
-        f'{i}: "{a["title"]}" — {a["source"]} [{", ".join(a["themes"])}]'
-        for i, a in enumerate(candidates)
+        f'{i}: "{a["title"]}" — {a["source"]}' for i, a in enumerate(candidates)
     )
     prompt_score = (
         "Você é analista de imprensa da Embaixada do Brasil em Nova Délhi. "
-        "Recebe manchetes da imprensa indiana (em inglês).\n\n" + SCORE_RUBRIC +
-        '\n\nResponda APENAS em JSON, sem texto fora dele: '
-        '{"scores": {"<i>": <0-100>}}.\n\n'
+        "Recebe manchetes da imprensa indiana (em inglês). Analise o SENTIDO "
+        "de cada manchete (não palavras isoladas).\n\n"
+        "Temas válidos (use estas CHAVES exatas):\n"
+        "  brasil = menções ao Brasil; brics = BRICS; "
+        "politica_externa = política externa/relações internacionais da Índia; "
+        "politica_interna = política doméstica indiana; economia = economia/"
+        "mercados/comércio; energia = petróleo, gás, eletricidade, renováveis, "
+        "nuclear (energia), biocombustíveis; cti = ciência, tecnologia, espaço, "
+        "inovação; clima = clima e meio ambiente.\n\n"
+        "Para CADA item, devolva:\n"
+        "- \"temas\": lista das CHAVES que REALMENTE se aplicam ao conteúdo. "
+        "Entenda o contexto: 'óleo quente de cozinha' NÃO é energia; 'armas/"
+        "arsenal nuclear' é politica_externa, NÃO energia; 'drone militar' não "
+        "é energia. Se não se encaixar em nenhum tema de interesse, use [].\n"
+        "- \"score\": " + SCORE_RUBRIC + "\n\n"
+        'Responda APENAS em JSON, sem texto fora dele: '
+        '{"itens": {"<i>": {"temas": ["..."], "score": <0-100>}}}.\n\n'
         f"Itens:\n{listing}"
     )
     try:
-        result = _gemini_call(prompt_score, api_key, model, 8192)
-        scores = result.get("scores", {}) or {}
+        result = _gemini_call(prompt_score, api_key, model, 16384)
+        itens = result.get("itens", {}) or {}
     except Exception as exc:  # noqa: BLE001
         print(f"  ! Gemini indisponível ({str(exc)[:80]}) — usando ranking heurístico")
         return []
 
     n_scored = 0
-    for k, v in scores.items():
+    for k, v in itens.items():
         try:
             idx = int(k)
-            candidates[idx]["ai_score"] = max(0, min(100, int(v)))
-            n_scored += 1
-        except (TypeError, ValueError, IndexError):
+        except (TypeError, ValueError):
             continue
+        if not (0 <= idx < len(candidates)) or not isinstance(v, dict):
+            continue
+        try:
+            candidates[idx]["ai_score"] = max(0, min(100, int(v.get("score"))))
+            n_scored += 1
+        except (TypeError, ValueError):
+            pass
+        # Recategorização inteligente: a IA decide os temas reais da matéria.
+        temas = v.get("temas")
+        if isinstance(temas, list):
+            candidates[idx]["themes"] = [t for t in THEMES if t in temas]
 
     # Destaques: PREFERÊNCIA ABSOLUTA por imprensa indiana, por nota da IA.
-    indian_scored = [a for a in candidates if a.get("origin") == "in" and "ai_score" in a]
+    indian_scored = [a for a in candidates
+                     if a.get("origin") == "in" and "ai_score" in a and a["themes"]]
     indian_scored.sort(key=lambda a: a["ai_score"], reverse=True)
     highlights = indian_scored[:8]
 
@@ -1035,6 +1065,13 @@ def main() -> int:
     # chave/cota do Gemini não estiver disponível.
     ai_highlights = gemini_enrich(articles, now)
     ai_curated = bool(ai_highlights)
+
+    # A IA pode ter recategorizado matérias como irrelevantes (temas = []):
+    # removê-las limpa os falsos positivos (ex.: "óleo quente" em Energia).
+    before = len(articles)
+    articles = [a for a in articles if a["themes"]]
+    if before != len(articles):
+        print(f"  [diag] removidas por recategorização da IA: {before - len(articles)}")
 
     # Se a IA pontuou os itens, ela passa a comandar a ordenação: notas da IA
     # primeiro (desc); itens não avaliados seguem pelo ranking heurístico.
