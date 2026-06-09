@@ -59,6 +59,25 @@ FEEDS_OVERRIDE='[{"name":"Sample","url":"tests/sample_feed.xml","themes":[]}]' \
 MAX_AGE_DAYS=3650 python3 scripts/build.py
 ```
 
+## Ranking e curadoria por IA
+
+As matérias são ordenadas por um **ranking heurístico de relevância**
+(determinístico, sem custo): peso por tema (Brasil ≫ BRICS > política
+internacional > demais), veículo de grande circulação, origem indiana,
+recência e cruzamento de temas.
+
+Opcionalmente, uma **camada de IA (Gemini)** gera os **Destaques do dia** e
+**resumos de 1 frase em português**. É totalmente opcional e com *fallback*
+automático: sem a chave (ou se a cota/rede falhar), o painel funciona 100%
+com o ranking heurístico.
+
+**Ativar o Gemini (gratuito):**
+1. Crie uma API key em <https://aistudio.google.com/apikey> (free tier).
+2. No repositório: **Settings → Secrets and variables → Actions → New
+   repository secret**, nome `GEMINI_API_KEY`, valor = sua chave.
+3. Rode o workflow. Modelo padrão: `gemini-2.5-flash` (ajustável via
+   variável `GEMINI_MODEL`).
+
 ## Personalização
 
 - **Fontes**: edite a lista `FEEDS` em `scripts/build.py`.

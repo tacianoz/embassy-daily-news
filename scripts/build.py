@@ -414,7 +414,8 @@ def render_html(payload: dict) -> str:
                       "color": v["color"], "icon": v["icon"]}
                   for k, v in THEMES.items()}
     data_json = json.dumps(
-        {"meta": payload["meta"], "themes": theme_meta, "articles": payload["articles"]},
+        {"meta": payload["meta"], "themes": theme_meta,
+         "articles": payload["articles"], "highlights": payload.get("highlights", [])},
         ensure_ascii=False,
     )
 
@@ -502,6 +503,26 @@ TEMPLATE = r"""<!DOCTYPE html>
   .chip.active .count { color: rgba(255,255,255,.85); }
 
   main { padding: 22px 0 60px; }
+  .sec-title { font-size: 17px; font-weight: 800; margin: 8px 0 14px; display: flex; align-items: center; gap: 10px; }
+  .sec-tag { font-size: 11px; font-weight: 700; color: #fff; background: #6c5ce7;
+    padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: .3px; }
+  #highlights-sec { margin-bottom: 26px; }
+  .hl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+  .hl {
+    position: relative; background: var(--card); border: 1px solid var(--line);
+    border-left: 4px solid #6c5ce7; border-radius: 12px; padding: 14px 16px;
+    box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 7px;
+  }
+  .hl .rank { position: absolute; top: -9px; left: -9px; width: 24px; height: 24px;
+    background: #6c5ce7; color: #fff; border-radius: 50%; display: grid; place-items: center;
+    font-size: 12px; font-weight: 800; box-shadow: var(--shadow); }
+  .hl .meta { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+  .hl h3 { margin: 0; font-size: 15px; line-height: 1.35; font-weight: 700; }
+  .hl h3 a { text-decoration: none; }
+  .hl h3 a:hover { text-decoration: underline; }
+  .hl p { margin: 0; font-size: 13px; color: var(--ink); }
+  .hl .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ai-mark { font-size: 10.5px; font-weight: 700; color: #6c5ce7; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
   .card {
     background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
@@ -584,6 +605,11 @@ TEMPLATE = r"""<!DOCTYPE html>
 </div>
 
 <main class="wrap">
+  <section id="highlights-sec" hidden>
+    <h2 class="sec-title">✨ Destaques do dia <span class="sec-tag">curadoria por IA</span></h2>
+    <div class="hl-grid" id="highlights"></div>
+  </section>
+  <h2 class="sec-title" id="all-title" hidden>Todas as matérias</h2>
   <div class="grid" id="grid"></div>
   <div class="empty" id="empty" hidden>Nenhuma matéria encontrada para este filtro.</div>
 </main>
@@ -686,10 +712,26 @@ TEMPLATE = r"""<!DOCTYPE html>
           (intl ? '<span class="intl-tag">🌐 Internacional</span>' : '') +
           (a.time_ago ? '<span>•</span><span>' + esc(a.time_ago) + '</span>' : '') + '</div>' +
         '<h3><a href="' + esc(a.link) + '" target="_blank" rel="noopener">' + esc(a.title) + '</a></h3>' +
-        (a.summary ? '<p class="sum">' + esc(a.summary) + '</p>' : '') +
+        (a.summary ? '<p class="sum">' + (a.ai_summary ? '<span class="ai-mark">✨ </span>' : '') + esc(a.summary) + '</p>' : '') +
         '<div class="badges">' + badges + '</div>' +
         '<a class="read" href="' + esc(a.link) + '" target="_blank" rel="noopener">Ler matéria →</a>' +
       '</div></article>';
+  }
+
+  function hlHTML(a, rank) {
+    const badges = a.themes.map(t =>
+      '<span class="badge" style="--bc:' + THEMES[t].color + '">' + THEMES[t].icon + ' ' + esc(THEMES[t].label) + '</span>'
+    ).join('');
+    const intl = a.origin === 'intl';
+    return '<article class="hl">' +
+      '<span class="rank">' + rank + '</span>' +
+      '<div class="meta"><span class="source' + (a.priority ? ' pri' : '') + '">' + esc(a.source) + '</span>' +
+        (intl ? '<span class="intl-tag">🌐 Internacional</span>' : '') +
+        (a.time_ago ? '<span>•</span><span>' + esc(a.time_ago) + '</span>' : '') + '</div>' +
+      '<h3><a href="' + esc(a.link) + '" target="_blank" rel="noopener">' + esc(a.title) + '</a></h3>' +
+      (a.summary ? '<p>' + (a.ai_summary ? '<span class="ai-mark">✨ </span>' : '') + esc(a.summary) + '</p>' : '') +
+      '<div class="badges">' + badges + '</div>' +
+    '</article>';
   }
 
   function render() {
@@ -711,6 +753,15 @@ TEMPLATE = r"""<!DOCTYPE html>
   // recomputa o "tempo atrás" no cliente (mais preciso que no build)
   for (const a of articles) a.time_ago = a.published ? timeAgo(a.published) : '';
 
+  // Destaques do dia (curadoria por IA), quando disponíveis
+  const HL = DATA.highlights || [];
+  if (HL.length) {
+    for (const a of HL) a.time_ago = a.published ? timeAgo(a.published) : '';
+    document.getElementById('highlights').innerHTML = HL.map((a, i) => hlHTML(a, i + 1)).join('');
+    document.getElementById('highlights-sec').hidden = false;
+    document.getElementById('all-title').hidden = false;
+  }
+
   document.getElementById('q').addEventListener('input', e => { query = e.target.value; render(); });
   render();
 })();
@@ -718,6 +769,94 @@ TEMPLATE = r"""<!DOCTYPE html>
 </body>
 </html>
 """
+
+
+# --------------------------------------------------------------------------- #
+# Camada de IA (Gemini) — opcional, com fallback
+# --------------------------------------------------------------------------- #
+def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
+    """Usa o Gemini para (1) gerar resumos de 1 frase em PT e (2) selecionar os
+    Destaques do dia. Retorna a lista de destaques (ou [] se indisponível).
+
+    Nunca lança exceção: qualquer falha (sem chave, cota, rede, JSON inválido)
+    resulta em fallback silencioso para o ranking heurístico.
+    """
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key or not articles:
+        if not api_key:
+            print("  (Gemini desativado: sem GEMINI_API_KEY — usando ranking heurístico)")
+        return []
+
+    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    # Manda os mais relevantes (pelo heurístico) para conter custo/tokens.
+    candidates = articles[:40]
+    listing = "\n".join(
+        f'{i}: "{a["title"]}" — {a["source"]} [{", ".join(a["themes"])}]'
+        for i, a in enumerate(candidates)
+    )
+    prompt = (
+        "Você é analista de imprensa da Embaixada do Brasil em Nova Délhi. "
+        "Recebe manchetes da imprensa indiana (em inglês).\n\n"
+        "Tarefas:\n"
+        "1) Para CADA item, escreva um resumo de 1 frase em português (máx. 160 "
+        "caracteres), factual e objetivo.\n"
+        "2) Selecione os até 8 itens MAIS RELEVANTES para a Embaixada, nesta "
+        "ordem de prioridade: menções ao Brasil; BRICS; relações bilaterais "
+        "Índia-Brasil; política externa indiana; comércio/energia/etanol; e por "
+        "fim política e economia indianas de maior peso.\n\n"
+        'Responda APENAS em JSON, sem texto fora dele, no formato: '
+        '{"resumos": {"<i>": "<resumo>"}, "destaques": [<i>, ...]}.\n\n'
+        f"Itens:\n{listing}"
+    )
+
+    body = json.dumps({
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.2,
+            "response_mime_type": "application/json",
+            "maxOutputTokens": 8192,
+        },
+    }).encode("utf-8")
+    url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+           f"{model}:generateContent?key={api_key}")
+
+    try:
+        req = urllib.request.Request(
+            url, data=body,
+            headers={"Content-Type": "application/json", "User-Agent": USER_AGENT},
+        )
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            raw = json.loads(resp.read())
+        text = raw["candidates"][0]["content"]["parts"][0]["text"]
+        result = json.loads(text)
+    except Exception as exc:  # noqa: BLE001 — fallback para o heurístico
+        print(f"  ! Gemini indisponível ({str(exc)[:80]}) — usando ranking heurístico")
+        return []
+
+    # Aplica resumos em PT (sobrepõe os resumos crus/vazios)
+    resumos = result.get("resumos", {}) or {}
+    for k, v in resumos.items():
+        try:
+            idx = int(k)
+        except (TypeError, ValueError):
+            continue
+        if 0 <= idx < len(candidates) and isinstance(v, str) and v.strip():
+            candidates[idx]["summary"] = v.strip()
+            candidates[idx]["ai_summary"] = True
+
+    # Monta os destaques preservando a ordem indicada pelo modelo
+    highlights: list[dict] = []
+    seen: set[int] = set()
+    for i in result.get("destaques", []) or []:
+        try:
+            idx = int(i)
+        except (TypeError, ValueError):
+            continue
+        if 0 <= idx < len(candidates) and idx not in seen:
+            seen.add(idx)
+            highlights.append(candidates[idx])
+    print(f"  ✓ Gemini: {len(highlights)} destaques, {len(resumos)} resumos gerados")
+    return highlights[:8]
 
 
 # --------------------------------------------------------------------------- #
@@ -815,16 +954,33 @@ def main() -> int:
                 "origin": "intl" if intl else "in",
             })
 
-    # Ordena por data (mais recente primeiro) e depois agrupa em camadas:
-    # 0) imprensa indiana de grande circulação, 1) demais indianas,
-    # 2) imprensa internacional — preservando a ordem por data em cada camada.
-    def tier(a: dict) -> int:
-        if a["origin"] == "intl":
-            return 2
-        return 0 if a["priority"] else 1
+    # Ranking heurístico de relevância (determinístico, sem IA). Pondera tema
+    # (foco da Embaixada: Brasil ≫ BRICS > política internacional > demais),
+    # veículo de peso, origem indiana, recência e cruzamento de temas.
+    THEME_WEIGHT = {
+        "brasil": 6, "brics": 5, "politica_externa": 3, "politica_interna": 2,
+        "economia": 2, "energia": 2, "cti": 2, "clima": 2,
+    }
 
-    articles.sort(key=lambda a: a["published"] or "", reverse=True)
-    articles.sort(key=tier)
+    def relevance(a: dict) -> float:
+        s = float(sum(THEME_WEIGHT.get(t, 1) for t in a["themes"]))
+        if len(a["themes"]) > 1:
+            s += 1.5  # bônus por cruzar temas
+        if a["priority"]:
+            s += 3
+        s += 2 if a["origin"] == "in" else -1
+        if a["published"]:
+            age_h = (now - datetime.fromisoformat(a["published"])).total_seconds() / 3600
+            s += 3 if age_h <= 24 else (1 if age_h <= 48 else 0)
+        a["score"] = round(s, 1)
+        return s
+
+    articles.sort(key=lambda a: (relevance(a), a["published"] or ""), reverse=True)
+
+    # Camada de IA (opcional): curadoria de "Destaques do dia" + resumos em
+    # português. Falha graciosamente para o ranking heurístico se a chave/cota
+    # do Gemini não estiver disponível.
+    highlights = gemini_enrich(articles, now)
 
     # Rótulo de atualização em horário de Brasília (UTC-3)
     brt = now.astimezone(timezone(timedelta(hours=-3)))
@@ -836,8 +992,10 @@ def main() -> int:
             "generated_label": generated_label,
             "window": "hoje e ontem",
             "feeds": sorted(ok_sources, key=str.lower),
+            "ai_curated": bool(highlights),
         },
         "articles": articles,
+        "highlights": highlights,
     }
 
     os.makedirs(out_dir, exist_ok=True)

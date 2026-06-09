@@ -38,6 +38,10 @@ jobs:
         run: python3 scripts/build.py
         env:
           OUTPUT_DIR: public
+          # Camada de IA opcional. Sem a secret, o build usa só o ranking
+          # heurístico (fallback automático).
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: gemini-2.5-flash
 
       - name: Configurar Pages
         uses: actions/configure-pages@v5
