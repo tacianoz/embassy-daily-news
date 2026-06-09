@@ -38,7 +38,6 @@ jobs:
         run: python3 scripts/build.py
         env:
           OUTPUT_DIR: public
-          MAX_AGE_DAYS: "3"
 
       - name: Configurar Pages
         uses: actions/configure-pages@v5

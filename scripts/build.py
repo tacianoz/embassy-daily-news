@@ -400,7 +400,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Índia em Foco — Monitor de Notícias para o Brasil</title>
+<title>Notícias do dia — Embaixada do Brasil em Nova Délhi</title>
 <style>
   :root {
     --bg: #f4f6fb; --card: #ffffff; --ink: #1a1f36; --muted: #6b7280;
@@ -424,23 +424,17 @@ TEMPLATE = r"""<!DOCTYPE html>
   .wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
 
   header.top {
-    background: linear-gradient(120deg, #ff9933 0%, #ffffff 50%, #138808 100%);
-    border-bottom: 1px solid var(--line);
+    background: #15224c;
+    border-bottom: 4px solid transparent;
+    border-image: linear-gradient(90deg, #1e9e3e 0 33.33%, #ffd200 33.33% 66.66%, #2b3a8f 66.66% 100%) 1;
   }
-  @media (prefers-color-scheme: dark) {
-    header.top { background: linear-gradient(120deg, #5a3a12 0%, #161b22 50%, #123a14 100%); }
-  }
-  .top-inner { padding: 26px 20px 22px; }
-  .brandline { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .brandline .flags { font-size: 26px; letter-spacing: 2px; }
-  h1 { margin: 0; font-size: clamp(22px, 3.2vw, 30px); font-weight: 800; color: #1a1f36; }
-  @media (prefers-color-scheme: dark) { h1 { color: var(--ink); } }
-  .subtitle { margin: 4px 0 0; color: #33415c; font-weight: 500; }
-  @media (prefers-color-scheme: dark) { .subtitle { color: var(--muted); } }
-  .stats { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 13px; color: #33415c; }
-  @media (prefers-color-scheme: dark) { .stats { color: var(--muted); } }
-  .stats b { color: #1a1f36; }
-  @media (prefers-color-scheme: dark) { .stats b { color: var(--ink); } }
+  .top-inner { padding: 22px 20px 20px; }
+  .brandline { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  .logo-svg { height: 94px; width: auto; display: block; flex: 0 0 auto; }
+  h1 { margin: 0; font-size: clamp(22px, 3.4vw, 32px); font-weight: 800; color: #fff; letter-spacing: .3px; }
+  .subtitle { margin: 5px 0 0; color: rgba(255,255,255,.82); font-weight: 500; }
+  .stats { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 16px; font-size: 13px; color: rgba(255,255,255,.78); }
+  .stats b { color: #fff; }
 
   .controls { position: sticky; top: 0; z-index: 20; background: var(--bg);
     border-bottom: 1px solid var(--line); padding: 12px 0; backdrop-filter: blur(6px); }
@@ -470,7 +464,9 @@ TEMPLATE = r"""<!DOCTYPE html>
   .chip:hover { transform: translateY(-1px); }
   .chip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--cc, #999); }
   .chip .count { color: var(--muted); font-weight: 600; font-size: 12px; }
-  .chip.active { border-color: var(--cc, var(--accent)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--cc, var(--accent)) 35%, transparent); }
+  .chip.active { background: var(--cc, var(--accent)); border-color: transparent; color: #fff; }
+  .chip.active .dot { box-shadow: 0 0 0 2px rgba(255,255,255,.6); }
+  .chip.active .count { color: rgba(255,255,255,.85); }
 
   main { padding: 22px 0 60px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
@@ -506,10 +502,17 @@ TEMPLATE = r"""<!DOCTYPE html>
 <header class="top">
   <div class="wrap top-inner">
     <div class="brandline">
-      <span class="flags">🇮🇳→🇧🇷</span>
-      <div>
-        <h1>Índia em Foco</h1>
-        <p class="subtitle">Monitor diário de notícias indianas relevantes para o Brasil</p>
+      <svg class="logo-svg" viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Embaixada do Brasil em Nova Délhi">
+        <text x="180" y="118" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="33" font-weight="600" letter-spacing="3">EMBAIXADA DO</text>
+        <text x="180" y="206" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="94" font-weight="800" letter-spacing="2">BRASIL</text>
+        <rect x="48" y="228" width="88" height="12" fill="#1e9e3e"/>
+        <rect x="136" y="228" width="88" height="12" fill="#ffd200"/>
+        <rect x="224" y="228" width="88" height="12" fill="#2b3a8f"/>
+        <text x="180" y="298" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="40" font-weight="600" letter-spacing="5">NOVA DÉLHI</text>
+      </svg>
+      <div class="titles">
+        <h1>Notícias do dia</h1>
+        <p class="subtitle">Monitor diário da imprensa indiana · Embaixada do Brasil em Nova Délhi</p>
       </div>
     </div>
     <div class="stats">
@@ -670,12 +673,23 @@ TEMPLATE = r"""<!DOCTYPE html>
 # --------------------------------------------------------------------------- #
 def main() -> int:
     out_dir = os.environ.get("OUTPUT_DIR", "public")
-    max_age = int(os.environ.get("MAX_AGE_DAYS", "3"))
     override = os.environ.get("FEEDS_OVERRIDE")
     feeds = json.loads(override) if override else FEEDS
 
     now = datetime.now(timezone.utc)
-    cutoff = now - timedelta(days=max_age)
+
+    # Janela de notícias: apenas HOJE e ONTEM (calendário de Nova Délhi, IST).
+    # MAX_AGE_DAYS continua disponível só para testes locais (janela rolante).
+    IST = timezone(timedelta(hours=5, minutes=30))
+    max_age_env = os.environ.get("MAX_AGE_DAYS")
+    if max_age_env:
+        cutoff = now - timedelta(days=int(max_age_env))
+        require_date = False
+    else:
+        today_ist = now.astimezone(IST).date()
+        yesterday = today_ist - timedelta(days=1)
+        cutoff = datetime(yesterday.year, yesterday.month, yesterday.day, tzinfo=IST)
+        require_date = True
 
     seen_links: set[str] = set()
     seen_titles: set[str] = set()
@@ -697,8 +711,11 @@ def main() -> int:
             title_key = normalize(item["title"]).strip()
             if link_key in seen_links or (title_key and title_key in seen_titles):
                 continue
-            # filtro por data (mantém itens sem data — alguns feeds omitem)
-            if item["published"] and item["published"] < cutoff:
+            # filtro por data: só hoje e ontem
+            if item["published"] is None:
+                if require_date:
+                    continue
+            elif item["published"] < cutoff:
                 continue
 
             # Nome do veículo: usa o <source> (Google News) quando houver,
@@ -744,7 +761,7 @@ def main() -> int:
         "meta": {
             "generated_utc": now.isoformat(),
             "generated_label": generated_label,
-            "max_age_days": max_age,
+            "window": "hoje e ontem",
             "feeds": sorted(ok_sources, key=str.lower),
         },
         "articles": articles,

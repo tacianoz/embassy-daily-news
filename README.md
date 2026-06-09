@@ -64,7 +64,11 @@ MAX_AGE_DAYS=3650 python3 scripts/build.py
 - **Fontes**: edite a lista `FEEDS` em `scripts/build.py`.
 - **Palavras-chave dos temas**: edite o dicionário `THEMES` no mesmo arquivo.
 - **Horário**: ajuste o `cron` em `.github/workflows/daily.yml`.
-- **Janela de notícias**: variável `MAX_AGE_DAYS` (padrão: 3 dias).
+- **Janela de notícias**: por padrão mostra apenas **hoje e ontem** (calendário
+  de Nova Délhi / IST). `MAX_AGE_DAYS` força uma janela rolante (uso em testes).
+- **Logo**: recriada em SVG no cabeçalho de `scripts/build.py`. Para usar o PNG
+  oficial, substitua o bloco `<svg class="logo-svg">` por `<img src="logo.png">`
+  e faça o script copiar o arquivo para `OUTPUT_DIR`.
 - **Apenas imprensa indiana**: as buscas agregadas (Google News) só aceitam
   veículos da lista `INDIAN_OUTLETS`; fontes estrangeiras são descartadas.
 - **Jornais em destaque**: os veículos em `PRIORITY_OUTLETS` (Economic Times,
