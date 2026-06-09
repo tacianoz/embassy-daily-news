@@ -709,7 +709,12 @@ TEMPLATE = r"""<!DOCTYPE html>
           (intl ? '<span class="intl-tag">🌐 Internacional</span>' : '') +
           (a.time_ago ? '<span>•</span><span>' + esc(a.time_ago) + '</span>' : '') + '</div>' +
         '<h3><a href="' + esc(a.link) + '" target="_blank" rel="noopener">' + esc(a.title) + '</a></h3>' +
-        (a.summary ? '<p class="sum">' + (a.ai_summary ? '<span class="ai-mark">✨ </span>' : '') + esc(a.summary) + '</p>' : '') +
+        (function () {
+          // Resumo em PT (✨) só na página Início; nas seções, o resumo original.
+          const useAi = activeTheme === 'inicio' && a.ai_summary_text;
+          const text = useAi ? a.ai_summary_text : a.summary;
+          return text ? '<p class="sum">' + (useAi ? '<span class="ai-mark">✨ </span>' : '') + esc(text) + '</p>' : '';
+        })() +
         '<div class="badges">' + badges + '</div>' +
         '<a class="read" href="' + esc(a.link) + '" target="_blank" rel="noopener">Ler matéria →</a>' +
       '</div></article>';
@@ -816,12 +821,15 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         "FAIXAS (não estoure a faixa do Brasil para temas setoriais):\n"
         "   90-100: menções diretas ao Brasil e relações bilaterais Índia-Brasil.\n"
         "   80-89: BRICS e cúpulas/foros com participação do Brasil.\n"
-        "   65-79: política externa indiana de alto nível e comércio internacional.\n"
+        "   65-79: política externa DA ÍNDIA (relações da Índia com outros "
+        "países; Índia em foros internacionais) e comércio exterior indiano.\n"
         "   50-64: temas SETORIAIS prioritários — altos DENTRO do seu tema, mas "
         "ABAIXO do Brasil: biocombustíveis (etanol, flex fuel, E20/E85/E100); IA, DPI"
         "(infraestrutura pública digital) e soberania digital; conferências do "
         "clima (COP) e ONU.\n"
-        "   30-49: demais política, economia, energia, ciência e clima da Índia.\n"
+        "   30-49: política/economia/energia/ciência/clima da Índia em geral; E "
+        "notícias internacionais que NÃO envolvem a Índia nem o Brasil (ex.: "
+        "relações entre terceiros países, como China e Coreia do Norte).\n"
         "   0-29: notícia local/factual sem interesse diplomático.\n"
         "Use scores DISTINTOS para refletir a ordem dentro de cada tema (evite "
         "empates). O score ordena tanto os Destaques quanto cada seção.\n\n"
@@ -869,8 +877,8 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
             continue
         resumo = v.get("resumo")
         if isinstance(resumo, str) and resumo.strip():
-            candidates[idx]["summary"] = resumo.strip()
-            candidates[idx]["ai_summary"] = True
+            # Resumo em PT exibido APENAS nos Destaques (não nas seções).
+            candidates[idx]["ai_summary_text"] = resumo.strip()
             n_resumos += 1
         try:
             candidates[idx]["ai_score"] = max(0, min(100, int(v.get("score"))))
