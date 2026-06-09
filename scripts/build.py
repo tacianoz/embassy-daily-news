@@ -792,9 +792,17 @@ SCORE_RUBRIC = (
     "   30-49: política/economia/energia/ciência/clima da Índia em geral; E "
     "notícias internacionais que NÃO envolvem a Índia nem o Brasil (ex.: "
     "relações entre terceiros países, como China e Coreia do Norte).\n"
-    "   0-29: notícia local/factual sem interesse diplomático.\n"
+    "   0-29: notícia local/factual/curiosidade sem interesse diplomático.\n\n"
+    "PRINCÍPIO GERAL (vale para TODOS os temas, inclusive energia, ciência e "
+    "clima): relevância = envolvimento com a ÍNDIA ou o BRASIL. Priorize "
+    "política, empresas, projetos, mercados e relações internacionais que "
+    "ENVOLVAM a Índia (interna ou externamente) ou o Brasil. Uma notícia "
+    "estrangeira, cultural ou de curiosidade SEM ligação com Índia/Brasil "
+    "(ex.: uma balsa turística na Itália que 'aproveita a energia da água') é "
+    "IRRELEVANTE: score 0-15 e normalmente sem tema.\n"
     "Dentro de uma mesma faixa, use números DISTINTOS para refletir a ordem "
-    "exata de relevância (evite empates) — o score ordena cada seção."
+    "exata de relevância (evite empates) — o score ordena cada seção, do mais "
+    "para o menos relevante."
 )
 
 
@@ -876,7 +884,9 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         "- \"temas\": lista das CHAVES que REALMENTE se aplicam ao conteúdo. "
         "Entenda o contexto: 'óleo quente de cozinha' NÃO é energia; 'armas/"
         "arsenal nuclear' é politica_externa, NÃO energia; 'drone militar' não "
-        "é energia. Se não se encaixar em nenhum tema de interesse, use [].\n"
+        "é energia; 'balsa turística que aproveita a energia da água' NÃO é "
+        "energia (é curiosidade). Se não se encaixar em nenhum tema de "
+        "interesse da Embaixada, use [].\n"
         "- \"score\": " + SCORE_RUBRIC + "\n\n"
         'Responda APENAS em JSON, sem texto fora dele: '
         '{"itens": {"<i>": {"temas": ["..."], "score": <0-100>}}}.\n\n'
