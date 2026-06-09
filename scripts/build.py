@@ -465,7 +465,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   }
   .top-inner { padding: 22px 20px 20px; }
   .brandline { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
-  .logo-svg { height: 94px; width: auto; display: block; flex: 0 0 auto; }
+  .logo-svg { height: 92px; width: auto; display: block; flex: 0 0 auto; overflow: visible; }
   h1 { margin: 0; font-size: clamp(22px, 3.4vw, 32px); font-weight: 800; color: #fff; letter-spacing: .3px; }
   .subtitle { margin: 5px 0 0; color: rgba(255,255,255,.82); font-weight: 500; }
   .stats { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 16px; font-size: 13px; color: rgba(255,255,255,.78); }
@@ -550,13 +550,13 @@ TEMPLATE = r"""<!DOCTYPE html>
 <header class="top">
   <div class="wrap top-inner">
     <div class="brandline">
-      <svg class="logo-svg" viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Embaixada do Brasil em Nova Délhi">
-        <text x="180" y="118" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="33" font-weight="600" letter-spacing="3">EMBAIXADA DO</text>
-        <text x="180" y="206" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="94" font-weight="800" letter-spacing="2">BRASIL</text>
-        <rect x="48" y="228" width="88" height="12" fill="#1e9e3e"/>
-        <rect x="136" y="228" width="88" height="12" fill="#ffd200"/>
-        <rect x="224" y="228" width="88" height="12" fill="#2b3a8f"/>
-        <text x="180" y="298" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="40" font-weight="600" letter-spacing="5">NOVA DÉLHI</text>
+      <svg class="logo-svg" viewBox="0 0 440 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Embaixada do Brasil em Nova Délhi">
+        <text x="220" y="74" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="600" letter-spacing="2">EMBAIXADA DO</text>
+        <text x="220" y="166" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="86" font-weight="800" letter-spacing="1">BRASIL</text>
+        <rect x="74" y="188" width="97" height="11" fill="#1e9e3e"/>
+        <rect x="171" y="188" width="97" height="11" fill="#ffd200"/>
+        <rect x="268" y="188" width="98" height="11" fill="#2b3a8f"/>
+        <text x="220" y="252" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="600" letter-spacing="5">NOVA DÉLHI</text>
       </svg>
       <div class="titles">
         <h1>Notícias do dia</h1>
@@ -1040,9 +1040,8 @@ def main() -> int:
     for a in en[:6]:
         print(f"         score={a.get('ai_score', '-')} | {a['source']} | {a['title'][:64]}")
 
-    # Rótulo de atualização em horário de Brasília (UTC-3)
-    brt = now.astimezone(timezone(timedelta(hours=-3)))
-    generated_label = brt.strftime("%d/%m/%Y às %H:%M (Brasília)")
+    # Rótulo de atualização no horário de Nova Délhi (IST, UTC+5:30)
+    generated_label = now.astimezone(IST).strftime("%d/%m/%Y às %H:%M (Nova Délhi)")
 
     payload = {
         "meta": {
