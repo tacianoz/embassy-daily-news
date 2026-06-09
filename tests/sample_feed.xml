@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>Sample Indian Feed</title>
+  <link>https://example.com</link>
+  <description>Teste</description>
+  <item>
+    <title>India and Brazil deepen BRICS cooperation ahead of summit</title>
+    <link>https://example.com/news/1</link>
+    <description><![CDATA[Prime Minister Modi and President Lula discussed trade within the BRICS bloc and the New Development Bank.]]></description>
+    <pubDate>Mon, 09 Jun 2026 06:30:00 +0000</pubDate>
+  </item>
+  <item>
+    <title>RBI holds interest rate as inflation eases, GDP growth steady</title>
+    <link>https://example.com/news/2</link>
+    <description>The Reserve Bank kept the repo rate unchanged amid steady economic indicators.</description>
+    <pubDate>Mon, 09 Jun 2026 05:00:00 +0000</pubDate>
+  </item>
+  <item>
+    <title>ISRO announces new satellite launch and AI research push</title>
+    <link>https://example.com/news/3</link>
+    <description>The space agency unveiled plans for a quantum technology and semiconductor initiative.</description>
+    <pubDate>Sun, 08 Jun 2026 12:00:00 +0000</pubDate>
+  </item>
+  <item>
+    <title>India boosts solar power and green hydrogen capacity</title>
+    <link>https://example.com/news/4</link>
+    <description>New renewable energy targets aim to cut coal dependence and emissions.</description>
+    <pubDate>Sat, 07 Jun 2026 09:00:00 +0000</pubDate>
+  </item>
+  <item>
+    <title>Local cricket club wins regional tournament</title>
+    <link>https://example.com/news/5</link>
+    <description>An unrelated sports story that should be filtered out.</description>
+    <pubDate>Mon, 09 Jun 2026 04:00:00 +0000</pubDate>
+  </item>
+  <item>
+    <title>Parliament passes new bill as opposition protests</title>
+    <link>https://example.com/news/6</link>
+    <description>The Lok Sabha approved legislation amid debate between BJP and Congress party.</description>
+    <pubDate>Mon, 09 Jun 2026 03:00:00 +0000</pubDate>
+  </item>
+  <item>
+    <title>Jaishankar holds bilateral talks on foreign policy and Indo-Pacific</title>
+    <link>https://example.com/news/7</link>
+    <description>The external affairs minister met counterparts ahead of the G20 summit.</description>
+    <pubDate>Mon, 09 Jun 2026 02:00:00 +0000</pubDate>
+  </item>
+  <item>
+    <title>Monsoon and climate change reshape Indian agriculture</title>
+    <link>https://example.com/news/8</link>
+    <description>Scientists warn rising carbon emissions affect biodiversity and air quality.</description>
+    <pubDate>Fri, 06 Jun 2026 09:00:00 +0000</pubDate>
+  </item>
+</channel>
+</rss>

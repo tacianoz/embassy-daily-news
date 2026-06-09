@@ -1,0 +1,5 @@
+# Saída gerada (publicada via GitHub Pages, não versionada)
+public/
+__pycache__/
+*.pyc
+.DS_Store
