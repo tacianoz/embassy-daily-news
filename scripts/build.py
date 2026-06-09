@@ -771,24 +771,65 @@ TEMPLATE = r"""<!DOCTYPE html>
 # --------------------------------------------------------------------------- #
 # Camada de IA (Gemini) — opcional, com fallback
 # --------------------------------------------------------------------------- #
-def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
-    """Usa o Gemini para (1) gerar resumos de 1 frase em PT e (2) selecionar os
-    Destaques do dia. Retorna a lista de destaques (ou [] se indisponível).
+SCORE_RUBRIC = (
+    "Pontue de 0 a 100 a RELEVÂNCIA PARA A EMBAIXADA do Brasil em Nova Délhi. "
+    "Use estas FAIXAS (não estoure a faixa do Brasil para temas setoriais):\n"
+    "   90-100: menções diretas ao Brasil e relações bilaterais Índia-Brasil.\n"
+    "   80-89: BRICS e cúpulas/foros com participação do Brasil.\n"
+    "   65-79: política externa DA ÍNDIA (relações da Índia com outros países; "
+    "Índia em foros internacionais) e comércio exterior indiano.\n"
+    "   50-64: temas SETORIAIS prioritários — altos DENTRO do seu tema, mas "
+    "ABAIXO do Brasil: biocombustíveis (etanol, flex fuel, E20/E85/E100); IA, "
+    "DPI (infraestrutura pública digital) e soberania digital; conferências do "
+    "clima (COP) e ONU.\n"
+    "   30-49: política/economia/energia/ciência/clima da Índia em geral; E "
+    "notícias internacionais que NÃO envolvem a Índia nem o Brasil (ex.: "
+    "relações entre terceiros países, como China e Coreia do Norte).\n"
+    "   0-29: notícia local/factual sem interesse diplomático.\n"
+    "Dentro de uma mesma faixa, use números DISTINTOS para refletir a ordem "
+    "exata de relevância (evite empates) — o score ordena cada seção."
+)
 
-    Nunca lança exceção: qualquer falha (sem chave, cota, rede, JSON inválido)
-    resulta em fallback silencioso para o ranking heurístico.
+
+def _gemini_call(prompt: str, api_key: str, model: str, max_tokens: int):
+    """Faz uma chamada ao Gemini e devolve o JSON da resposta (ou None)."""
+    body = json.dumps({
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.1,
+            "response_mime_type": "application/json",
+            "maxOutputTokens": max_tokens,
+            # Desliga o "thinking" do 2.5-flash (senão consome tokens e trunca).
+            "thinkingConfig": {"thinkingBudget": 0},
+        },
+    }).encode("utf-8")
+    url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+           f"{model}:generateContent?key={api_key}")
+    req = urllib.request.Request(
+        url, data=body,
+        headers={"Content-Type": "application/json", "User-Agent": USER_AGENT},
+    )
+    with urllib.request.urlopen(req, timeout=90) as resp:
+        raw = json.loads(resp.read())
+    return json.loads(raw["candidates"][0]["content"]["parts"][0]["text"])
+
+
+def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
+    """A IA comanda o ranqueamento. Duas chamadas ao Gemini:
+      1) pontua um conjunto amplo (cobre cada seção a fundo) — só notas;
+      2) resume em PT apenas os Destaques.
+    Define a["ai_score"] e (nos destaques) a["ai_summary_text"]; retorna os
+    destaques (imprensa indiana). Falha graciosamente para o heurístico.
     """
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key or not articles:
         if not api_key:
             print("  (Gemini desativado: sem GEMINI_API_KEY — usando ranking heurístico)")
         return []
-
     model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-    # Seleção de candidatos com COBERTURA TEMÁTICA: além do topo global,
-    # inclui os melhores de cada tema. Sem isso, assuntos de baixo peso
-    # heurístico (energia/biocombustível, C&T, clima) não chegariam ao modelo
-    # e nunca seriam pontuados/destacados.
+
+    # Cobertura ampla: topo global + até 40 por tema => a IA pontua (e ordena)
+    # cada seção, não só os destaques. O heurístico fica só como desempate.
     candidates: list[dict] = []
     seen_ids: set[int] = set()
 
@@ -797,100 +838,74 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
             seen_ids.add(id(a))
             candidates.append(a)
 
-    for a in articles[:40]:           # topo global
+    for a in articles[:50]:
         _add(a)
-    for theme in THEMES:              # até 30 por tema => cada seção é ranqueada pela IA
+    for theme in THEMES:
         c = 0
         for a in articles:
             if theme in a["themes"]:
                 _add(a)
                 c += 1
-                if c >= 30:
+                if c >= 40:
                     break
-    candidates = candidates[:160]
+    candidates = candidates[:240]
+
+    # ---- Chamada 1: NOTAS (sem resumo => barato e confiável) ----
     listing = "\n".join(
         f'{i}: "{a["title"]}" — {a["source"]} [{", ".join(a["themes"])}]'
         for i, a in enumerate(candidates)
     )
-    prompt = (
+    prompt_score = (
         "Você é analista de imprensa da Embaixada do Brasil em Nova Délhi. "
-        "Recebe manchetes da imprensa indiana (em inglês).\n\n"
-        "Para CADA item, forneça:\n"
-        "- \"resumo\": 1 frase em português (máx. 160 caracteres), factual.\n"
-        "- \"score\": inteiro 0-100 de relevância para a Embaixada. Use estas "
-        "FAIXAS (não estoure a faixa do Brasil para temas setoriais):\n"
-        "   90-100: menções diretas ao Brasil e relações bilaterais Índia-Brasil.\n"
-        "   80-89: BRICS e cúpulas/foros com participação do Brasil.\n"
-        "   65-79: política externa DA ÍNDIA (relações da Índia com outros "
-        "países; Índia em foros internacionais) e comércio exterior indiano.\n"
-        "   50-64: temas SETORIAIS prioritários — altos DENTRO do seu tema, mas "
-        "ABAIXO do Brasil: biocombustíveis (etanol, flex fuel, E20/E85/E100); IA, DPI"
-        "(infraestrutura pública digital) e soberania digital; conferências do "
-        "clima (COP) e ONU.\n"
-        "   30-49: política/economia/energia/ciência/clima da Índia em geral; E "
-        "notícias internacionais que NÃO envolvem a Índia nem o Brasil (ex.: "
-        "relações entre terceiros países, como China e Coreia do Norte).\n"
-        "   0-29: notícia local/factual sem interesse diplomático.\n"
-        "Use scores DISTINTOS para refletir a ordem dentro de cada tema (evite "
-        "empates). O score ordena tanto os Destaques quanto cada seção.\n\n"
-        'Responda APENAS em JSON, sem texto fora dele, no formato: '
-        '{"itens": {"<i>": {"resumo": "<resumo>", "score": <0-100>}}}.\n\n'
+        "Recebe manchetes da imprensa indiana (em inglês).\n\n" + SCORE_RUBRIC +
+        '\n\nResponda APENAS em JSON, sem texto fora dele: '
+        '{"scores": {"<i>": <0-100>}}.\n\n'
         f"Itens:\n{listing}"
     )
-
-    body = json.dumps({
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0.2,
-            "response_mime_type": "application/json",
-            "maxOutputTokens": 16384,
-            # Desliga o "thinking" do gemini-2.5-flash: sem isso, o raciocínio
-            # consome o orçamento de tokens e o JSON volta truncado.
-            "thinkingConfig": {"thinkingBudget": 0},
-        },
-    }).encode("utf-8")
-    url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
-           f"{model}:generateContent?key={api_key}")
-
     try:
-        req = urllib.request.Request(
-            url, data=body,
-            headers={"Content-Type": "application/json", "User-Agent": USER_AGENT},
-        )
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            raw = json.loads(resp.read())
-        text = raw["candidates"][0]["content"]["parts"][0]["text"]
-        result = json.loads(text)
-    except Exception as exc:  # noqa: BLE001 — fallback para o heurístico
+        result = _gemini_call(prompt_score, api_key, model, 8192)
+        scores = result.get("scores", {}) or {}
+    except Exception as exc:  # noqa: BLE001
         print(f"  ! Gemini indisponível ({str(exc)[:80]}) — usando ranking heurístico")
         return []
 
-    # Aplica resumo em PT e nota de relevância (ai_score) a cada item
-    itens = result.get("itens", {}) or {}
-    n_resumos = 0
-    for k, v in itens.items():
+    n_scored = 0
+    for k, v in scores.items():
         try:
             idx = int(k)
-        except (TypeError, ValueError):
+            candidates[idx]["ai_score"] = max(0, min(100, int(v)))
+            n_scored += 1
+        except (TypeError, ValueError, IndexError):
             continue
-        if not (0 <= idx < len(candidates)) or not isinstance(v, dict):
-            continue
-        resumo = v.get("resumo")
-        if isinstance(resumo, str) and resumo.strip():
-            # Resumo em PT exibido APENAS nos Destaques (não nas seções).
-            candidates[idx]["ai_summary_text"] = resumo.strip()
-            n_resumos += 1
-        try:
-            candidates[idx]["ai_score"] = max(0, min(100, int(v.get("score"))))
-        except (TypeError, ValueError):
-            pass
 
-    # Destaques: PREFERÊNCIA ABSOLUTA por imprensa indiana. Ignora itens
-    # internacionais e ordena por nota da IA (desc).
+    # Destaques: PREFERÊNCIA ABSOLUTA por imprensa indiana, por nota da IA.
     indian_scored = [a for a in candidates if a.get("origin") == "in" and "ai_score" in a]
     indian_scored.sort(key=lambda a: a["ai_score"], reverse=True)
     highlights = indian_scored[:8]
-    print(f"  ✓ Gemini: {len(highlights)} destaques (indianos), {n_resumos} resumos/notas geradas")
+
+    # ---- Chamada 2: RESUMOS em PT apenas para os Destaques ----
+    n_resumos = 0
+    if highlights:
+        hl_listing = "\n".join(
+            f'{i}: "{a["title"]}" — {a["source"]}' for i, a in enumerate(highlights)
+        )
+        prompt_sum = (
+            "Resuma cada manchete indiana abaixo em 1 frase em português "
+            "(máx. 160 caracteres), factual e objetiva.\n\n"
+            'Responda APENAS em JSON: {"resumos": {"<i>": "<resumo>"}}.\n\n'
+            f"{hl_listing}"
+        )
+        try:
+            res = _gemini_call(prompt_sum, api_key, model, 4096)
+            for k, v in (res.get("resumos", {}) or {}).items():
+                idx = int(k)
+                if 0 <= idx < len(highlights) and isinstance(v, str) and v.strip():
+                    highlights[idx]["ai_summary_text"] = v.strip()
+                    n_resumos += 1
+        except Exception as exc:  # noqa: BLE001 — destaques ficam sem resumo PT
+            print(f"  ! Gemini (resumos) indisponível ({str(exc)[:60]})")
+
+    print(f"  ✓ Gemini: {n_scored} matérias pontuadas, {len(highlights)} destaques, {n_resumos} resumos PT")
     return highlights
 
 
