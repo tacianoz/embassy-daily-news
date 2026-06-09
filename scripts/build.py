@@ -503,32 +503,11 @@ TEMPLATE = r"""<!DOCTYPE html>
   .chip.active .count { color: rgba(255,255,255,.85); }
 
   main { padding: 22px 0 60px; }
-  .sec-title { font-size: 17px; font-weight: 800; margin: 8px 0 14px; display: flex; align-items: center; gap: 10px; }
+  .sec-title { font-size: 17px; font-weight: 800; margin: 8px 0 16px; display: flex; align-items: center; gap: 10px; }
   .sec-tag { font-size: 11px; font-weight: 700; color: #fff; background: #6c5ce7;
     padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: .3px; }
-  #highlights-sec { margin-bottom: 22px; }
-  .hl-toggle { margin-left: auto; cursor: pointer; border: 1px solid var(--line);
-    background: var(--card); color: var(--muted); border-radius: 8px; padding: 2px 9px;
-    font-size: 13px; font-weight: 700; line-height: 1.4; }
-  .hl-grid { display: flex; gap: 12px; overflow-x: auto; padding: 8px 2px 12px;
-    scroll-snap-type: x mandatory; scrollbar-width: thin; }
-  .hl-grid.collapsed { display: none; }
-  .hl {
-    position: relative; flex: 0 0 300px; scroll-snap-align: start;
-    background: var(--card); border: 1px solid var(--line);
-    border-left: 4px solid #6c5ce7; border-radius: 12px; padding: 14px 16px;
-    box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 7px;
-  }
-  .hl .rank { position: absolute; top: -9px; left: -9px; width: 24px; height: 24px;
-    background: #6c5ce7; color: #fff; border-radius: 50%; display: grid; place-items: center;
-    font-size: 12px; font-weight: 800; box-shadow: var(--shadow); }
-  .hl .meta { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
-  .hl h3 { margin: 0; font-size: 15px; line-height: 1.35; font-weight: 700; }
-  .hl h3 a { text-decoration: none; }
-  .hl h3 a:hover { text-decoration: underline; }
-  .hl p { margin: 0; font-size: 13px; color: var(--ink); }
-  .hl .badges { display: flex; gap: 6px; flex-wrap: wrap; }
   .ai-mark { font-size: 10.5px; font-weight: 700; color: #6c5ce7; }
+  .hl-mark { font-size: 12px; color: #6c5ce7; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
   .card {
     background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
@@ -546,6 +525,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     text-transform: uppercase; }
   .card.is-intl { border-style: dashed; }
   .card.is-intl .bar { background: repeating-linear-gradient(45deg, #8a93a3 0 8px, #b6bdc9 8px 16px); }
+  .card.is-hl { border-left: 3px solid #6c5ce7; }
   .card h3 { margin: 0; font-size: 16px; line-height: 1.35; font-weight: 700; }
   .card h3 a { text-decoration: none; }
   .card h3 a:hover { text-decoration: underline; }
@@ -611,13 +591,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 </div>
 
 <main class="wrap">
-  <section id="highlights-sec" hidden>
-    <h2 class="sec-title">✨ Destaques do dia <span class="sec-tag" id="hl-tag">curadoria por IA</span>
-      <button id="hl-toggle" class="hl-toggle" title="Recolher/expandir">▾</button>
-    </h2>
-    <div class="hl-grid" id="highlights"></div>
-  </section>
-  <h2 class="sec-title" id="all-title" hidden>Todas as matérias</h2>
+  <h2 class="sec-title" id="view-title" hidden></h2>
   <div class="grid" id="grid"></div>
   <div class="empty" id="empty" hidden>Nenhuma matéria encontrada para este filtro.</div>
 </main>
@@ -635,7 +609,9 @@ TEMPLATE = r"""<!DOCTYPE html>
   const DATA = JSON.parse(document.getElementById('payload').textContent);
   const THEMES = DATA.themes;
   const articles = DATA.articles;
-  let activeTheme = 'all';
+  const HL = DATA.highlights || [];
+  const hlLinks = new Set(HL.map(a => a.link));
+  let activeTheme = HL.length ? 'inicio' : 'all';  // página inicial = Destaques
   let activeSource = 'all';
   let activeOrigin = 'all';
   let query = '';
@@ -674,7 +650,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   // Chips de filtro
   function makeChip(key, label, color, count) {
     const el = document.createElement('button');
-    el.className = 'chip' + (key === 'all' ? ' active' : '');
+    el.className = 'chip' + (key === activeTheme ? ' active' : '');
     el.dataset.key = key;
     if (color) el.style.setProperty('--cc', color);
     el.innerHTML =
@@ -687,6 +663,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     });
     return el;
   }
+  if (HL.length) chipsEl.appendChild(makeChip('inicio', '🏠 Início', '#6c5ce7', HL.length));
   chipsEl.appendChild(makeChip('all', 'Todos', '', counts.all));
   for (const k in THEMES) {
     chipsEl.appendChild(makeChip(k, THEMES[k].icon + ' ' + THEMES[k].label, THEMES[k].color, counts[k] || 0));
@@ -713,10 +690,13 @@ TEMPLATE = r"""<!DOCTYPE html>
       '<span class="badge" style="--bc:' + THEMES[t].color + '">' + THEMES[t].icon + ' ' + esc(THEMES[t].label) + '</span>'
     ).join('');
     const intl = a.origin === 'intl';
-    return '<article class="card t-' + primary + (intl ? ' is-intl' : '') + '">' +
+    const hl = hlLinks.has(a.link) && activeTheme !== 'inicio';  // marquinha roxa nos filtros
+    return '<article class="card t-' + primary + (intl ? ' is-intl' : '') + (hl ? ' is-hl' : '') + '">' +
       '<div class="bar"></div>' +
       '<div class="body">' +
-        '<div class="meta"><span class="source' + (a.priority ? ' pri' : '') + '">' + esc(a.source) + '</span>' +
+        '<div class="meta">' +
+          (hl ? '<span class="hl-mark" title="Destaque do dia">✦</span>' : '') +
+          '<span class="source' + (a.priority ? ' pri' : '') + '">' + esc(a.source) + '</span>' +
           (intl ? '<span class="intl-tag">🌐 Internacional</span>' : '') +
           (a.time_ago ? '<span>•</span><span>' + esc(a.time_ago) + '</span>' : '') + '</div>' +
         '<h3><a href="' + esc(a.link) + '" target="_blank" rel="noopener">' + esc(a.title) + '</a></h3>' +
@@ -726,65 +706,40 @@ TEMPLATE = r"""<!DOCTYPE html>
       '</div></article>';
   }
 
-  function hlHTML(a, rank) {
-    const badges = a.themes.map(t =>
-      '<span class="badge" style="--bc:' + THEMES[t].color + '">' + THEMES[t].icon + ' ' + esc(THEMES[t].label) + '</span>'
-    ).join('');
-    const intl = a.origin === 'intl';
-    return '<article class="hl">' +
-      '<span class="rank">' + rank + '</span>' +
-      '<div class="meta"><span class="source' + (a.priority ? ' pri' : '') + '">' + esc(a.source) + '</span>' +
-        (intl ? '<span class="intl-tag">🌐 Internacional</span>' : '') +
-        (a.time_ago ? '<span>•</span><span>' + esc(a.time_ago) + '</span>' : '') + '</div>' +
-      '<h3><a href="' + esc(a.link) + '" target="_blank" rel="noopener">' + esc(a.title) + '</a></h3>' +
-      (a.summary ? '<p>' + (a.ai_summary ? '<span class="ai-mark">✨ </span>' : '') + esc(a.summary) + '</p>' : '') +
-      '<div class="badges">' + badges + '</div>' +
-    '</article>';
+  const viewTitle = document.getElementById('view-title');
+
+  function matchFilters(a) {
+    const q = query.trim().toLowerCase();
+    const okSource = activeSource === 'all' || a.source === activeSource;
+    const okOrigin = activeOrigin === 'all' || a.origin === activeOrigin;
+    const okQuery = !q ||
+      a.title.toLowerCase().includes(q) ||
+      (a.summary || '').toLowerCase().includes(q) ||
+      a.source.toLowerCase().includes(q);
+    return okSource && okOrigin && okQuery;
   }
 
   function render() {
-    const q = query.trim().toLowerCase();
-    const list = articles.filter(a => {
-      const okTheme = activeTheme === 'all' || a.themes.includes(activeTheme);
-      const okSource = activeSource === 'all' || a.source === activeSource;
-      const okOrigin = activeOrigin === 'all' || a.origin === activeOrigin;
-      const okQuery = !q ||
-        a.title.toLowerCase().includes(q) ||
-        (a.summary || '').toLowerCase().includes(q) ||
-        a.source.toLowerCase().includes(q);
-      return okTheme && okSource && okOrigin && okQuery;
-    });
+    let list;
+    if (activeTheme === 'inicio') {
+      // Página inicial: somente os Destaques do dia (sem misturar o resto)
+      list = HL.filter(matchFilters);
+      const tag = DATA.meta.ai_curated ? 'curadoria por IA' : 'mais relevantes';
+      viewTitle.innerHTML = '✨ Destaques do dia <span class="sec-tag">' + tag + '</span>';
+      viewTitle.hidden = false;
+    } else {
+      list = articles.filter(a => (activeTheme === 'all' || a.themes.includes(activeTheme)) && matchFilters(a));
+      // matérias destacadas aparecem em primeiro lugar (com marquinha roxa)
+      list.sort((x, y) => (hlLinks.has(y.link) ? 1 : 0) - (hlLinks.has(x.link) ? 1 : 0));
+      viewTitle.hidden = true;
+    }
     grid.innerHTML = list.map(cardHTML).join('');
     empty.hidden = list.length !== 0;
-    syncHighlights();
   }
 
   // recomputa o "tempo atrás" no cliente (mais preciso que no build)
   for (const a of articles) a.time_ago = a.published ? timeAgo(a.published) : '';
-
-  // Destaques do dia (curadoria por IA), quando disponíveis. Faixa horizontal
-  // compacta, colapsável e que some quando há filtro/busca ativos.
-  const HL = DATA.highlights || [];
-  const hlSec = document.getElementById('highlights-sec');
-  if (HL.length) {
-    for (const a of HL) a.time_ago = a.published ? timeAgo(a.published) : '';
-    document.getElementById('highlights').innerHTML = HL.map((a, i) => hlHTML(a, i + 1)).join('');
-    document.getElementById('hl-tag').textContent = DATA.meta.ai_curated ? 'curadoria por IA' : 'mais relevantes';
-    document.getElementById('all-title').hidden = false;
-    const toggle = document.getElementById('hl-toggle');
-    toggle.addEventListener('click', () => {
-      const grid = document.getElementById('highlights');
-      const collapsed = grid.classList.toggle('collapsed');
-      toggle.textContent = collapsed ? '▸' : '▾';
-    });
-  }
-
-  function syncHighlights() {
-    const anyFilter = activeTheme !== 'all' || activeSource !== 'all' ||
-      activeOrigin !== 'all' || query.trim() !== '';
-    hlSec.hidden = !(HL.length && !anyFilter);
-    document.getElementById('all-title').hidden = !(HL.length && !anyFilter);
-  }
+  for (const a of HL) a.time_ago = a.published ? timeAgo(a.published) : '';
 
   document.getElementById('q').addEventListener('input', e => { query = e.target.value; render(); });
   render();
