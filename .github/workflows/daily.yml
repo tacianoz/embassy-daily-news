@@ -2,8 +2,8 @@ name: Atualização diária do dashboard
 
 on:
   schedule:
-    # 10:00 UTC = 07:00 em Brasília (UTC-3) — todo dia de manhã
-    - cron: "0 10 * * *"
+    # 01:30 UTC = 07:00 em Nova Délhi (IST, UTC+5:30) — toda manhã na Índia
+    - cron: "30 1 * * *"
   workflow_dispatch:        # permite rodar manualmente pela aba Actions
   push:
     branches: [main]
