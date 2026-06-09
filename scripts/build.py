@@ -49,6 +49,8 @@ FEEDS = [
     {"name": "Google News — Energia", "url": "https://news.google.com/rss/search?q=India+(ethanol+OR+biofuel+OR+%22flex+fuel%22+OR+biogas+OR+biodiesel+OR+bioenergy+OR+%22ethanol+blending%22+OR+E20+OR+E85+OR+E100)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["energia"], "scope_india": True},
     {"name": "Google News — Energia", "url": "https://news.google.com/rss/search?q=India+(%22renewable+energy%22+OR+%22green+hydrogen%22+OR+%22solar+power%22+OR+%22wind+energy%22+OR+%22nuclear+power%22+OR+%22clean+energy%22+OR+%22energy+transition%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["energia"], "scope_india": True},
     {"name": "Google News — C&T", "url": "https://news.google.com/rss/search?q=India+(ISRO+OR+semiconductor+OR+%22artificial+intelligence%22+OR+%22space+mission%22+OR+startup+OR+innovation+OR+DRDO)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["cti"], "scope_india": True},
+    {"name": "Google News — C&T", "url": "https://news.google.com/rss/search?q=India+(%22digital+public+infrastructure%22+OR+%22quantum+computing%22+OR+supercomputer+OR+agritech+OR+healthtech+OR+biotechnology+OR+%22deep+tech%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["cti"], "scope_india": True},
+    {"name": "Google News — Mineração", "url": "https://news.google.com/rss/search?q=India+(%22critical+minerals%22+OR+%22rare+earths%22+OR+%22rare+earth%22+OR+lithium+OR+cobalt+OR+%22mineral+exploration%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["energia"], "scope_india": True},
     {"name": "Google News — Clima", "url": "https://news.google.com/rss/search?q=India+(%22climate+change%22+OR+emissions+OR+%22net+zero%22+OR+pollution+OR+biodiversity+OR+%22COP30%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["clima"], "scope_india": True},
 
     # The Hindu
@@ -408,6 +410,31 @@ def parse_feed(raw: bytes, source: str) -> list[dict]:
             "outlet": strip_html(item_source) if item_source else "",
         })
     return items
+
+
+_TITLE_STOP = {
+    "the", "and", "for", "with", "says", "after", "over", "amid", "into",
+    "from", "that", "this", "are", "was", "will", "has", "have", "its", "new",
+    "out", "how", "why", "what", "who", "his", "her", "their", "more", "than",
+    "first", "second", "third", "report", "amid", "ahead", "year", "day",
+}
+
+
+def title_tokens(title: str) -> set:
+    """Conjunto de palavras significativas do título (para detectar quase-dups)."""
+    return {t for t in normalize(title).split()
+            if len(t) >= 3 and t not in _TITLE_STOP}
+
+
+def titles_similar(a: set, b: set) -> bool:
+    """True se dois títulos provavelmente são a MESMA notícia (veículos
+    diferentes, manchetes diferentes)."""
+    if len(a) < 4 or len(b) < 4:
+        return False
+    inter = len(a & b)
+    jaccard = inter / len(a | b)
+    containment = inter / min(len(a), len(b))
+    return jaccard >= 0.6 or containment >= 0.8
 
 
 def classify(item: dict, hint_themes: list[str]) -> list[str]:
@@ -987,6 +1014,7 @@ def main() -> int:
 
     seen_links: set[str] = set()
     seen_titles: set[str] = set()
+    seen_title_tokens: list[set] = []
     articles: list[dict] = []
     ok_sources: set[str] = set()
 
@@ -1016,6 +1044,11 @@ def main() -> int:
             link_key = item["link"].split("?")[0].strip().lower()
             title_key = normalize(title).strip()
             if link_key in seen_links or (title_key and title_key in seen_titles):
+                continue
+            # Quase-duplicata: mesma notícia em veículos diferentes, com
+            # manchetes diferentes (compara conjuntos de palavras do título).
+            tok = title_tokens(title)
+            if any(titles_similar(tok, s) for s in seen_title_tokens):
                 continue
             # filtro por data: só hoje e ontem
             if item["published"] is None:
@@ -1048,6 +1081,8 @@ def main() -> int:
             seen_links.add(link_key)
             if title_key:
                 seen_titles.add(title_key)
+            if tok:
+                seen_title_tokens.append(tok)
             ok_sources.add(outlet)
             articles.append({
                 "title": title,
