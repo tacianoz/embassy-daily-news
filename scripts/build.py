@@ -506,10 +506,16 @@ TEMPLATE = r"""<!DOCTYPE html>
   .sec-title { font-size: 17px; font-weight: 800; margin: 8px 0 14px; display: flex; align-items: center; gap: 10px; }
   .sec-tag { font-size: 11px; font-weight: 700; color: #fff; background: #6c5ce7;
     padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: .3px; }
-  #highlights-sec { margin-bottom: 26px; }
-  .hl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+  #highlights-sec { margin-bottom: 22px; }
+  .hl-toggle { margin-left: auto; cursor: pointer; border: 1px solid var(--line);
+    background: var(--card); color: var(--muted); border-radius: 8px; padding: 2px 9px;
+    font-size: 13px; font-weight: 700; line-height: 1.4; }
+  .hl-grid { display: flex; gap: 12px; overflow-x: auto; padding: 8px 2px 12px;
+    scroll-snap-type: x mandatory; scrollbar-width: thin; }
+  .hl-grid.collapsed { display: none; }
   .hl {
-    position: relative; background: var(--card); border: 1px solid var(--line);
+    position: relative; flex: 0 0 300px; scroll-snap-align: start;
+    background: var(--card); border: 1px solid var(--line);
     border-left: 4px solid #6c5ce7; border-radius: 12px; padding: 14px 16px;
     box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 7px;
   }
@@ -606,7 +612,9 @@ TEMPLATE = r"""<!DOCTYPE html>
 
 <main class="wrap">
   <section id="highlights-sec" hidden>
-    <h2 class="sec-title">✨ Destaques do dia <span class="sec-tag">curadoria por IA</span></h2>
+    <h2 class="sec-title">✨ Destaques do dia <span class="sec-tag">curadoria por IA</span>
+      <button id="hl-toggle" class="hl-toggle" title="Recolher/expandir">▾</button>
+    </h2>
     <div class="hl-grid" id="highlights"></div>
   </section>
   <h2 class="sec-title" id="all-title" hidden>Todas as matérias</h2>
@@ -748,18 +756,33 @@ TEMPLATE = r"""<!DOCTYPE html>
     });
     grid.innerHTML = list.map(cardHTML).join('');
     empty.hidden = list.length !== 0;
+    syncHighlights();
   }
 
   // recomputa o "tempo atrás" no cliente (mais preciso que no build)
   for (const a of articles) a.time_ago = a.published ? timeAgo(a.published) : '';
 
-  // Destaques do dia (curadoria por IA), quando disponíveis
+  // Destaques do dia (curadoria por IA), quando disponíveis. Faixa horizontal
+  // compacta, colapsável e que some quando há filtro/busca ativos.
   const HL = DATA.highlights || [];
+  const hlSec = document.getElementById('highlights-sec');
   if (HL.length) {
     for (const a of HL) a.time_ago = a.published ? timeAgo(a.published) : '';
     document.getElementById('highlights').innerHTML = HL.map((a, i) => hlHTML(a, i + 1)).join('');
-    document.getElementById('highlights-sec').hidden = false;
     document.getElementById('all-title').hidden = false;
+    const toggle = document.getElementById('hl-toggle');
+    toggle.addEventListener('click', () => {
+      const grid = document.getElementById('highlights');
+      const collapsed = grid.classList.toggle('collapsed');
+      toggle.textContent = collapsed ? '▸' : '▾';
+    });
+  }
+
+  function syncHighlights() {
+    const anyFilter = activeTheme !== 'all' || activeSource !== 'all' ||
+      activeOrigin !== 'all' || query.trim() !== '';
+    hlSec.hidden = !(HL.length && !anyFilter);
+    document.getElementById('all-title').hidden = !(HL.length && !anyFilter);
   }
 
   document.getElementById('q').addEventListener('input', e => { query = e.target.value; render(); });
@@ -789,7 +812,7 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
 
     model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
     # Manda os mais relevantes (pelo heurístico) para conter custo/tokens.
-    candidates = articles[:40]
+    candidates = articles[:60]
     listing = "\n".join(
         f'{i}: "{a["title"]}" — {a["source"]} [{", ".join(a["themes"])}]'
         for i, a in enumerate(candidates)
@@ -797,15 +820,18 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
     prompt = (
         "Você é analista de imprensa da Embaixada do Brasil em Nova Délhi. "
         "Recebe manchetes da imprensa indiana (em inglês).\n\n"
-        "Tarefas:\n"
-        "1) Para CADA item, escreva um resumo de 1 frase em português (máx. 160 "
-        "caracteres), factual e objetivo.\n"
-        "2) Selecione os até 8 itens MAIS RELEVANTES para a Embaixada, nesta "
-        "ordem de prioridade: menções ao Brasil; BRICS; relações bilaterais "
+        "Para CADA item, forneça:\n"
+        "- \"resumo\": 1 frase em português (máx. 160 caracteres), factual.\n"
+        "- \"score\": inteiro 0-100 de RELEVÂNCIA PARA A EMBAIXADA, segundo a "
+        "prioridade: menções ao Brasil (mais alto); BRICS; relações bilaterais "
         "Índia-Brasil; política externa indiana; comércio/energia/etanol; e por "
-        "fim política e economia indianas de maior peso.\n\n"
+        "fim política e economia indianas de maior peso. Notícia local/factual "
+        "sem interesse diplomático recebe score baixo.\n\n"
+        "Em seguida, liste em \"destaques\" os índices dos até 8 itens mais "
+        "relevantes, do mais para o menos relevante.\n\n"
         'Responda APENAS em JSON, sem texto fora dele, no formato: '
-        '{"resumos": {"<i>": "<resumo>"}, "destaques": [<i>, ...]}.\n\n'
+        '{"itens": {"<i>": {"resumo": "<resumo>", "score": <0-100>}}, '
+        '"destaques": [<i>, ...]}.\n\n'
         f"Itens:\n{listing}"
     )
 
@@ -833,16 +859,25 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         print(f"  ! Gemini indisponível ({str(exc)[:80]}) — usando ranking heurístico")
         return []
 
-    # Aplica resumos em PT (sobrepõe os resumos crus/vazios)
-    resumos = result.get("resumos", {}) or {}
-    for k, v in resumos.items():
+    # Aplica resumo em PT e nota de relevância (ai_score) a cada item
+    itens = result.get("itens", {}) or {}
+    n_resumos = 0
+    for k, v in itens.items():
         try:
             idx = int(k)
         except (TypeError, ValueError):
             continue
-        if 0 <= idx < len(candidates) and isinstance(v, str) and v.strip():
-            candidates[idx]["summary"] = v.strip()
+        if not (0 <= idx < len(candidates)) or not isinstance(v, dict):
+            continue
+        resumo = v.get("resumo")
+        if isinstance(resumo, str) and resumo.strip():
+            candidates[idx]["summary"] = resumo.strip()
             candidates[idx]["ai_summary"] = True
+            n_resumos += 1
+        try:
+            candidates[idx]["ai_score"] = max(0, min(100, int(v.get("score"))))
+        except (TypeError, ValueError):
+            pass
 
     # Monta os destaques preservando a ordem indicada pelo modelo
     highlights: list[dict] = []
@@ -855,7 +890,7 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         if 0 <= idx < len(candidates) and idx not in seen:
             seen.add(idx)
             highlights.append(candidates[idx])
-    print(f"  ✓ Gemini: {len(highlights)} destaques, {len(resumos)} resumos gerados")
+    print(f"  ✓ Gemini: {len(highlights)} destaques, {n_resumos} resumos/notas geradas")
     return highlights[:8]
 
 
@@ -977,10 +1012,20 @@ def main() -> int:
 
     articles.sort(key=lambda a: (relevance(a), a["published"] or ""), reverse=True)
 
-    # Camada de IA (opcional): curadoria de "Destaques do dia" + resumos em
-    # português. Falha graciosamente para o ranking heurístico se a chave/cota
-    # do Gemini não estiver disponível.
+    # Camada de IA (opcional): nota de relevância p/ a Embaixada + resumos em
+    # português + Destaques. Falha graciosamente para o ranking heurístico se a
+    # chave/cota do Gemini não estiver disponível.
     highlights = gemini_enrich(articles, now)
+
+    # Se a IA pontuou os itens, ela passa a comandar a ordenação: notas da IA
+    # primeiro (desc); itens não avaliados seguem pelo ranking heurístico.
+    if any("ai_score" in a for a in articles):
+        articles.sort(key=lambda a: (
+            1 if "ai_score" in a else 0,
+            a.get("ai_score", 0),
+            a["score"],
+            a["published"] or "",
+        ), reverse=True)
 
     # Rótulo de atualização em horário de Brasília (UTC-3)
     brt = now.astimezone(timezone(timedelta(hours=-3)))
