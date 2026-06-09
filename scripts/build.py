@@ -166,9 +166,16 @@ THEMES = {
         "icon": "⚡",
         "keywords": [
             "energy", "oil", "natural gas", "petroleum", "crude", "coal",
-            "solar", "wind power", "renewable", "power sector", "electricity",
-            "nuclear", "hydrogen", "refinery", "opec", "lng", "electric vehicle",
-            "power grid", "biofuel", "ethanol", "thermal power",
+            "solar", "solar power", "rooftop solar", "wind", "wind power",
+            "wind energy", "wind farm", "offshore wind", "renewable",
+            "renewables", "clean energy", "power sector", "electricity",
+            "nuclear", "nuclear power", "hydrogen", "green hydrogen",
+            "refinery", "opec", "lng", "electric vehicle", "power grid",
+            "thermal power", "hydropower", "geothermal",
+            # bioenergia
+            "biofuel", "ethanol", "ethanol blending", "biogas",
+            "compressed biogas", "bioenergy", "biodiesel", "biomass",
+            "flex fuel", "flex fuel vehicle",
         ],
     },
     "cti": {
