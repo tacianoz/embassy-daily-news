@@ -169,8 +169,8 @@ THEMES = {
         ],
     },
     "energia": {
-        "label": "Energia",
-        "desc": "Petróleo, gás, renováveis e eletricidade",
+        "label": "Energia e mineração",
+        "desc": "Energia, minerais críticos e terras raras",
         "color": "#e67e22",
         "icon": "⚡",
         "keywords": [
@@ -193,6 +193,11 @@ THEMES = {
             "e10", "e20", "e27", "e85", "e100", "biogas",
             "compressed biogas", "bioenergy", "biodiesel", "biomass",
             "flex fuel", "flex fuel vehicle",
+            # mineração / minerais críticos
+            "critical mineral", "critical minerals", "rare earth",
+            "rare earths", "lithium", "cobalt", "graphite", "nickel ore",
+            "mining sector", "mineral resources", "mineral exploration",
+            "strategic minerals", "coal mining", "kabil",
         ],
     },
     "cti": {
@@ -202,9 +207,13 @@ THEMES = {
         "icon": "🔬",
         "keywords": [
             "technology", "science", "isro", "space mission", "satellite",
-            "artificial intelligence", "semiconductor", "innovation",
-            "research", "quantum", "biotech", "5g", "6g", "drdo", "robotics",
-            "deep tech", "chip", "digital india", "moon mission", "rocket",
+            "artificial intelligence", "semiconductor", "semiconductors",
+            "innovation", "research", "quantum", "quantum computing",
+            "supercomputer", "supercomputing", "biotech", "biotechnology",
+            "agritech", "agri tech", "healthtech", "health tech",
+            "digital public infrastructure", "digital india", "deep tech",
+            "5g", "6g", "drdo", "robotics", "chip", "chip plant", "fab",
+            "moon mission", "rocket", "spacetech", "data centre", "data center",
         ],
     },
     "clima": {
@@ -786,9 +795,11 @@ SCORE_RUBRIC = (
     "   65-79: política externa DA ÍNDIA (relações da Índia com outros países; "
     "Índia em foros internacionais) e comércio exterior indiano.\n"
     "   50-64: temas SETORIAIS prioritários — altos DENTRO do seu tema, mas "
-    "ABAIXO do Brasil: biocombustíveis (etanol, flex fuel, E20/E85/E100); IA, "
-    "DPI (infraestrutura pública digital) e soberania digital; conferências do "
-    "clima (COP) e ONU.\n"
+    "ABAIXO do Brasil: biocombustíveis (etanol, flex fuel, E20/E85/E100), "
+    "minerais críticos e terras raras; em tecnologia — IA, supercomputação, "
+    "DPI (infraestrutura pública digital) e soberania digital, semicondutores, "
+    "computação quântica, espaço/ISRO, agritech, healthtech e biotecnologia; "
+    "em clima — conferências do clima (COP) e ONU.\n"
     "   30-49: política/economia/energia/ciência/clima da Índia em geral; E "
     "notícias internacionais que NÃO envolvem a Índia nem o Brasil (ex.: "
     "relações entre terceiros países, como China e Coreia do Norte).\n"
@@ -878,8 +889,10 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         "politica_externa = política externa/relações internacionais da Índia; "
         "politica_interna = política doméstica indiana; economia = economia/"
         "mercados/comércio; energia = petróleo, gás, eletricidade, renováveis, "
-        "nuclear (energia), biocombustíveis; cti = ciência, tecnologia, espaço, "
-        "inovação; clima = clima e meio ambiente.\n\n"
+        "nuclear (energia), biocombustíveis, mineração, minerais críticos e "
+        "terras raras; cti = ciência, tecnologia, espaço, inovação, IA, "
+        "semicondutores, quântica, supercomputação, DPI, biotech, agritech, "
+        "healthtech; clima = clima e meio ambiente.\n\n"
         "Para CADA item, devolva:\n"
         "- \"temas\": lista das CHAVES que REALMENTE se aplicam ao conteúdo. "
         "Entenda o contexto: 'óleo quente de cozinha' NÃO é energia; 'armas/"
