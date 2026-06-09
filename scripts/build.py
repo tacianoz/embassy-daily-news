@@ -46,7 +46,7 @@ FEEDS = [
     # Buscas dedicadas por tema (Google News) — garantem recall de assuntos
     # que os feeds de seção não cobrem (ex.: biocombustíveis). Só imprensa
     # indiana (sem allow_intl). O tema já vem carimbado via "themes".
-    {"name": "Google News — Energia", "url": "https://news.google.com/rss/search?q=India+(ethanol+OR+biofuel+OR+%22flex+fuel%22+OR+biogas+OR+biodiesel+OR+bioenergy+OR+%22ethanol+blending%22+OR+E85+OR+E20)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["energia"], "scope_india": True},
+    {"name": "Google News — Energia", "url": "https://news.google.com/rss/search?q=India+(ethanol+OR+biofuel+OR+%22flex+fuel%22+OR+biogas+OR+biodiesel+OR+bioenergy+OR+%22ethanol+blending%22+OR+E20+OR+E85+OR+E100)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["energia"], "scope_india": True},
     {"name": "Google News — Energia", "url": "https://news.google.com/rss/search?q=India+(%22renewable+energy%22+OR+%22green+hydrogen%22+OR+%22solar+power%22+OR+%22wind+energy%22+OR+%22nuclear+power%22+OR+%22clean+energy%22+OR+%22energy+transition%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["energia"], "scope_india": True},
     {"name": "Google News — C&T", "url": "https://news.google.com/rss/search?q=India+(ISRO+OR+semiconductor+OR+%22artificial+intelligence%22+OR+%22space+mission%22+OR+startup+OR+innovation+OR+DRDO)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["cti"], "scope_india": True},
     {"name": "Google News — Clima", "url": "https://news.google.com/rss/search?q=India+(%22climate+change%22+OR+emissions+OR+%22net+zero%22+OR+pollution+OR+biodiversity+OR+%22COP30%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["clima"], "scope_india": True},
@@ -182,7 +182,8 @@ THEMES = {
             "refinery", "opec", "lng", "electric vehicle", "power grid",
             "thermal power", "hydropower", "geothermal",
             # bioenergia
-            "biofuel", "ethanol", "ethanol blending", "biogas",
+            "biofuel", "ethanol", "ethanol blending", "ethanol blend",
+            "e10", "e20", "e27", "e85", "e100", "biogas",
             "compressed biogas", "bioenergy", "biodiesel", "biomass",
             "flex fuel", "flex fuel vehicle",
         ],
@@ -817,7 +818,7 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         "   80-89: BRICS e cúpulas/foros com participação do Brasil.\n"
         "   65-79: política externa indiana de alto nível e comércio internacional.\n"
         "   50-64: temas SETORIAIS prioritários — altos DENTRO do seu tema, mas "
-        "ABAIXO do Brasil: biocombustíveis (etanol, flex fuel, E20/E85); IA, DPI "
+        "ABAIXO do Brasil: biocombustíveis (etanol, flex fuel, E20/E85/E100); IA, DPI"
         "(infraestrutura pública digital) e soberania digital; conferências do "
         "clima (COP) e ONU.\n"
         "   30-49: demais política, economia, energia, ciência e clima da Índia.\n"
@@ -1028,7 +1029,8 @@ def main() -> int:
     highlights = ai_highlights if ai_curated else [a for a in articles if a["origin"] == "in"][:8]
 
     # Diagnóstico (aparece no log do Actions): mostra a realidade do dia.
-    _bio_kw = ("ethanol", "biofuel", "flex fuel", "biogas", "biodiesel", "e85", "e20", "bioenergy")
+    _bio_kw = ("ethanol", "biofuel", "flex fuel", "biogas", "biodiesel",
+               "e10", "e20", "e27", "e85", "e100", "bioenergy")
     bio = [a for a in articles if any(" " + k + " " in normalize(a["title"] + " " + a["summary"]) for k in _bio_kw)]
     print(f"  [diag] biocombustível no período (hoje/ontem): {len(bio)}")
     for a in bio[:6]:
