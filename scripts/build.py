@@ -768,8 +768,29 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         return []
 
     model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-    # Manda os mais relevantes (pelo heurístico) para conter custo/tokens.
-    candidates = articles[:40]
+    # Seleção de candidatos com COBERTURA TEMÁTICA: além do topo global,
+    # inclui os melhores de cada tema. Sem isso, assuntos de baixo peso
+    # heurístico (energia/biocombustível, C&T, clima) não chegariam ao modelo
+    # e nunca seriam pontuados/destacados.
+    candidates: list[dict] = []
+    seen_ids: set[int] = set()
+
+    def _add(a: dict) -> None:
+        if id(a) not in seen_ids:
+            seen_ids.add(id(a))
+            candidates.append(a)
+
+    for a in articles[:24]:           # topo global
+        _add(a)
+    for theme in THEMES:              # melhores de cada tema
+        c = 0
+        for a in articles:
+            if theme in a["themes"]:
+                _add(a)
+                c += 1
+                if c >= 7:
+                    break
+    candidates = candidates[:72]
     listing = "\n".join(
         f'{i}: "{a["title"]}" — {a["source"]} [{", ".join(a["themes"])}]'
         for i, a in enumerate(candidates)
