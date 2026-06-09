@@ -262,6 +262,12 @@ INDIAN_OUTLETS = [
     # Clima / meio ambiente / saúde
     "down to earth", "mongabay", "carbon copy", "the third pole",
     "ethealthworld", "et healthworld", "medical dialogues", "pharmabiz",
+    # Agro / mainstream adicionais
+    "krishi jagran", "krishijagran", "newslaundry", "the caravan", "india tv",
+    "india briefing", "ibef", "observer research foundation", "orf online",
+    # Defesa
+    "livefist", "idrw", "indian defence", "indian defense", "stratpost",
+    "force magazine", "indian defence review", "raksha anirveda",
 ]
 
 # Jornais de grande circulação — recebem prioridade na ordenação e destaque.
