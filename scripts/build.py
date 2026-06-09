@@ -202,7 +202,7 @@ THEMES = {
     "clima": {
         "label": "Mudanças climáticas e meio ambiente",
         "desc": "Clima, meio ambiente e sustentabilidade",
-        "color": "#2e8b57",
+        "color": "#0891b2",
         "icon": "🌱",
         "keywords": [
             "climate", "climate change", "environment", "environmental",
@@ -505,10 +505,11 @@ TEMPLATE = r"""<!DOCTYPE html>
   main { padding: 22px 0 60px; }
   .sec-title { font-size: 17px; font-weight: 800; margin: 8px 0 16px; display: flex; align-items: center; gap: 10px; }
   .sec-title[hidden] { display: none; }
-  .sec-tag { font-size: 11px; font-weight: 700; color: #fff; background: #6c5ce7;
+  .sec-tag { font-size: 11px; font-weight: 700; color: #fff; background: #c2185b;
     padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: .3px; }
-  .ai-mark { font-size: 10.5px; font-weight: 700; color: #6c5ce7; }
-  .hl-mark { font-size: 12px; color: #6c5ce7; }
+  .ai-mark { font-size: 10.5px; font-weight: 700; color: #c2185b; }
+  .hl-mark { font-size: 12px; color: #c2185b; }
+  img.emoji { height: 1em; width: 1em; margin: 0 .05em 0 .1em; vertical-align: -0.1em; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
   .card {
     background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
@@ -526,7 +527,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     text-transform: uppercase; }
   .card.is-intl { border-style: dashed; }
   .card.is-intl .bar { background: repeating-linear-gradient(45deg, #8a93a3 0 8px, #b6bdc9 8px 16px); }
-  .card.is-hl { border-left: 3px solid #6c5ce7; }
+  .card.is-hl { border-left: 3px solid #c2185b; }
   .card h3 { margin: 0; font-size: 16px; line-height: 1.35; font-weight: 700; }
   .card h3 a { text-decoration: none; }
   .card h3 a:hover { text-decoration: underline; }
@@ -579,8 +580,8 @@ TEMPLATE = r"""<!DOCTYPE html>
       <span aria-hidden="true">🌍</span>
       <select id="origin">
         <option value="all">Todas as origens</option>
-        <option value="in">🇮🇳 Imprensa indiana</option>
-        <option value="intl">🌐 Agências internacionais</option>
+        <option value="in">Imprensa indiana</option>
+        <option value="intl">Agências internacionais</option>
       </select>
     </label>
     <label class="srcpick">
@@ -605,8 +606,14 @@ TEMPLATE = r"""<!DOCTYPE html>
 </footer>
 
 <script id="payload" type="application/json">/*DATA_JSON*/</script>
+<script src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
 <script>
 (function () {
+  // Renderiza emojis (inclusive bandeiras 🇧🇷/🇮🇳, que o Windows não desenha)
+  // como imagens via Twemoji. Degrada para emoji nativo se o CDN falhar.
+  function parseEmoji(el) {
+    try { if (window.twemoji) twemoji.parse(el, { folder: 'svg', ext: '.svg' }); } catch (e) {}
+  }
   const DATA = JSON.parse(document.getElementById('payload').textContent);
   const THEMES = DATA.themes;
   const articles = DATA.articles;
@@ -664,7 +671,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     });
     return el;
   }
-  if (HL.length) chipsEl.appendChild(makeChip('inicio', '🏠 Início', '#6c5ce7', HL.length));
+  if (HL.length) chipsEl.appendChild(makeChip('inicio', '🏠 Início', '#c2185b', HL.length));
   chipsEl.appendChild(makeChip('all', 'Todos', '', counts.all));
   for (const k in THEMES) {
     chipsEl.appendChild(makeChip(k, THEMES[k].icon + ' ' + THEMES[k].label, THEMES[k].color, counts[k] || 0));
@@ -736,6 +743,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     }
     grid.innerHTML = list.map(cardHTML).join('');
     empty.hidden = list.length !== 0;
+    parseEmoji(grid);
   }
 
   // recomputa o "tempo atrás" no cliente (mais preciso que no build)
@@ -744,6 +752,9 @@ TEMPLATE = r"""<!DOCTYPE html>
 
   document.getElementById('q').addEventListener('input', e => { query = e.target.value; render(); });
   render();
+  parseEmoji(document.body);
+  // Re-parseia quando o Twemoji terminar de carregar (CDN assíncrono)
+  window.addEventListener('load', () => parseEmoji(document.body));
 })();
 </script>
 </body>
@@ -780,17 +791,17 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
             seen_ids.add(id(a))
             candidates.append(a)
 
-    for a in articles[:24]:           # topo global
+    for a in articles[:40]:           # topo global
         _add(a)
-    for theme in THEMES:              # melhores de cada tema
+    for theme in THEMES:              # melhores de cada tema (cobre cada seção)
         c = 0
         for a in articles:
             if theme in a["themes"]:
                 _add(a)
                 c += 1
-                if c >= 7:
+                if c >= 18:
                     break
-    candidates = candidates[:72]
+    candidates = candidates[:120]
     listing = "\n".join(
         f'{i}: "{a["title"]}" — {a["source"]} [{", ".join(a["themes"])}]'
         for i, a in enumerate(candidates)
@@ -808,12 +819,11 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         "artificial (IA), DPI/infraestrutura pública digital e soberania "
         "digital; em clima, conferências do clima (COP) e atuação da ONU. "
         "Depois, política e economia indianas de maior peso. Notícia local/"
-        "factual sem interesse diplomático recebe score baixo.\n\n"
-        "Em seguida, liste em \"destaques\" os índices dos até 8 itens mais "
-        "relevantes, do mais para o menos relevante.\n\n"
+        "factual sem interesse diplomático recebe score baixo. O score será "
+        "usado para ORDENAR as matérias dentro de cada seção, da mais para a "
+        "menos relevante — seja criterioso e evite empates.\n\n"
         'Responda APENAS em JSON, sem texto fora dele, no formato: '
-        '{"itens": {"<i>": {"resumo": "<resumo>", "score": <0-100>}}, '
-        '"destaques": [<i>, ...]}.\n\n'
+        '{"itens": {"<i>": {"resumo": "<resumo>", "score": <0-100>}}}.\n\n'
         f"Itens:\n{listing}"
     )
 
@@ -864,19 +874,13 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         except (TypeError, ValueError):
             pass
 
-    # Monta os destaques preservando a ordem indicada pelo modelo
-    highlights: list[dict] = []
-    seen: set[int] = set()
-    for i in result.get("destaques", []) or []:
-        try:
-            idx = int(i)
-        except (TypeError, ValueError):
-            continue
-        if 0 <= idx < len(candidates) and idx not in seen:
-            seen.add(idx)
-            highlights.append(candidates[idx])
-    print(f"  ✓ Gemini: {len(highlights)} destaques, {n_resumos} resumos/notas geradas")
-    return highlights[:8]
+    # Destaques: PREFERÊNCIA ABSOLUTA por imprensa indiana. Ignora itens
+    # internacionais e ordena por nota da IA (desc).
+    indian_scored = [a for a in candidates if a.get("origin") == "in" and "ai_score" in a]
+    indian_scored.sort(key=lambda a: a["ai_score"], reverse=True)
+    highlights = indian_scored[:8]
+    print(f"  ✓ Gemini: {len(highlights)} destaques (indianos), {n_resumos} resumos/notas geradas")
+    return highlights
 
 
 # --------------------------------------------------------------------------- #
@@ -1016,9 +1020,10 @@ def main() -> int:
             a["published"] or "",
         ), reverse=True)
 
-    # Destaques sempre presentes na página principal: usa a curadoria da IA
-    # quando disponível; caso contrário, os mais relevantes pelo heurístico.
-    highlights = ai_highlights if ai_curated else articles[:8]
+    # Destaques sempre presentes na página principal: curadoria da IA quando
+    # disponível; senão, os mais relevantes pelo heurístico. Em ambos os casos,
+    # PREFERÊNCIA ABSOLUTA por imprensa indiana (sem internacionais).
+    highlights = ai_highlights if ai_curated else [a for a in articles if a["origin"] == "in"][:8]
 
     # Rótulo de atualização em horário de Brasília (UTC-3)
     brt = now.astimezone(timezone(timedelta(hours=-3)))
