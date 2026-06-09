@@ -612,7 +612,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 
 <main class="wrap">
   <section id="highlights-sec" hidden>
-    <h2 class="sec-title">✨ Destaques do dia <span class="sec-tag">curadoria por IA</span>
+    <h2 class="sec-title">✨ Destaques do dia <span class="sec-tag" id="hl-tag">curadoria por IA</span>
       <button id="hl-toggle" class="hl-toggle" title="Recolher/expandir">▾</button>
     </h2>
     <div class="hl-grid" id="highlights"></div>
@@ -769,6 +769,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   if (HL.length) {
     for (const a of HL) a.time_ago = a.published ? timeAgo(a.published) : '';
     document.getElementById('highlights').innerHTML = HL.map((a, i) => hlHTML(a, i + 1)).join('');
+    document.getElementById('hl-tag').textContent = DATA.meta.ai_curated ? 'curadoria por IA' : 'mais relevantes';
     document.getElementById('all-title').hidden = false;
     const toggle = document.getElementById('hl-toggle');
     toggle.addEventListener('click', () => {
@@ -812,7 +813,7 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
 
     model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
     # Manda os mais relevantes (pelo heurístico) para conter custo/tokens.
-    candidates = articles[:60]
+    candidates = articles[:40]
     listing = "\n".join(
         f'{i}: "{a["title"]}" — {a["source"]} [{", ".join(a["themes"])}]'
         for i, a in enumerate(candidates)
@@ -840,7 +841,10 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         "generationConfig": {
             "temperature": 0.2,
             "response_mime_type": "application/json",
-            "maxOutputTokens": 8192,
+            "maxOutputTokens": 16384,
+            # Desliga o "thinking" do gemini-2.5-flash: sem isso, o raciocínio
+            # consome o orçamento de tokens e o JSON volta truncado.
+            "thinkingConfig": {"thinkingBudget": 0},
         },
     }).encode("utf-8")
     url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
@@ -1015,7 +1019,8 @@ def main() -> int:
     # Camada de IA (opcional): nota de relevância p/ a Embaixada + resumos em
     # português + Destaques. Falha graciosamente para o ranking heurístico se a
     # chave/cota do Gemini não estiver disponível.
-    highlights = gemini_enrich(articles, now)
+    ai_highlights = gemini_enrich(articles, now)
+    ai_curated = bool(ai_highlights)
 
     # Se a IA pontuou os itens, ela passa a comandar a ordenação: notas da IA
     # primeiro (desc); itens não avaliados seguem pelo ranking heurístico.
@@ -1027,6 +1032,10 @@ def main() -> int:
             a["published"] or "",
         ), reverse=True)
 
+    # Destaques sempre presentes na página principal: usa a curadoria da IA
+    # quando disponível; caso contrário, os mais relevantes pelo heurístico.
+    highlights = ai_highlights if ai_curated else articles[:8]
+
     # Rótulo de atualização em horário de Brasília (UTC-3)
     brt = now.astimezone(timezone(timedelta(hours=-3)))
     generated_label = brt.strftime("%d/%m/%Y às %H:%M (Brasília)")
@@ -1037,7 +1046,7 @@ def main() -> int:
             "generated_label": generated_label,
             "window": "hoje e ontem",
             "feeds": sorted(ok_sources, key=str.lower),
-            "ai_curated": bool(highlights),
+            "ai_curated": ai_curated,
         },
         "articles": articles,
         "highlights": highlights,
