@@ -780,9 +780,13 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         "- \"resumo\": 1 frase em português (máx. 160 caracteres), factual.\n"
         "- \"score\": inteiro 0-100 de RELEVÂNCIA PARA A EMBAIXADA, segundo a "
         "prioridade: menções ao Brasil (mais alto); BRICS; relações bilaterais "
-        "Índia-Brasil; política externa indiana; comércio/energia/etanol; e por "
-        "fim política e economia indianas de maior peso. Notícia local/factual "
-        "sem interesse diplomático recebe score baixo.\n\n"
+        "Índia-Brasil; política externa indiana; comércio. "
+        "ELEVE TAMBÉM o score (alta relevância) para: biocombustíveis, "
+        "sobretudo etanol e flex fuel (E20/E85); em tecnologia, inteligência "
+        "artificial (IA), DPI/infraestrutura pública digital e soberania "
+        "digital; em clima, conferências do clima (COP) e atuação da ONU. "
+        "Depois, política e economia indianas de maior peso. Notícia local/"
+        "factual sem interesse diplomático recebe score baixo.\n\n"
         "Em seguida, liste em \"destaques\" os índices dos até 8 itens mais "
         "relevantes, do mais para o menos relevante.\n\n"
         'Responda APENAS em JSON, sem texto fora dele, no formato: '
@@ -893,8 +897,19 @@ def main() -> int:
             continue
         parsed = parse_feed(raw, name)
         for item in parsed:
+            # Nome do veículo: usa o <source> (Google News) quando houver,
+            # senão o nome-base do feed.
+            outlet = item.get("outlet") or outlet_default
+
+            # Limpa o título ANTES de gerar a chave de dedupe: o Google News
+            # acrescenta " - Veículo" ao fim, o que impediria a deduplicação
+            # contra o feed próprio do veículo.
+            title = item["title"]
+            if item.get("outlet") and title.endswith(" - " + item["outlet"]):
+                title = title[: -(len(item["outlet"]) + 3)].strip()
+
             link_key = item["link"].split("?")[0].strip().lower()
-            title_key = normalize(item["title"]).strip()
+            title_key = normalize(title).strip()
             if link_key in seen_links or (title_key and title_key in seen_titles):
                 continue
             # filtro por data: só hoje e ontem
@@ -904,9 +919,6 @@ def main() -> int:
             elif item["published"] < cutoff:
                 continue
 
-            # Nome do veículo: usa o <source> (Google News) quando houver,
-            # senão o nome-base do feed.
-            outlet = item.get("outlet") or outlet_default
             indian = is_indian(outlet)
             known_intl = is_international(outlet)
             intl = known_intl and not indian
@@ -927,11 +939,6 @@ def main() -> int:
             themes = classify(item, hint)
             if not themes:
                 continue  # só interessa o que cai em algum tema
-
-            title = item["title"]
-            # Google News acrescenta " - Veículo" ao fim do título; remove.
-            if item.get("outlet") and title.endswith(" - " + item["outlet"]):
-                title = title[: -(len(item["outlet"]) + 3)].strip()
 
             seen_links.add(link_key)
             if title_key:
