@@ -115,7 +115,7 @@ THEMES = {
         ],
     },
     "politica_externa": {
-        "label": "Política externa indiana",
+        "label": "Política internacional",
         "desc": "Diplomacia e relações internacionais",
         "color": "#3d4eac",
         "icon": "🌐",
@@ -130,7 +130,7 @@ THEMES = {
         ],
     },
     "politica_interna": {
-        "label": "Política interna indiana",
+        "label": "Política interna",
         "desc": "Política doméstica e governo",
         "color": "#c0392b",
         "icon": "🏛️",
@@ -143,7 +143,7 @@ THEMES = {
         ],
     },
     "economia": {
-        "label": "Economia indiana",
+        "label": "Economia",
         "desc": "Economia, mercados e comércio",
         "color": "#0f7b6c",
         "icon": "📈",
@@ -539,7 +539,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   srcEl.addEventListener('change', e => { activeSource = e.target.value; render(); });
   document.getElementById('stat-updated').textContent = DATA.meta.generated_label;
   document.getElementById('sources-list').textContent =
-    'Fontes monitoradas: ' + (DATA.meta.feeds || []).join(' · ');
+    'Veículos nesta edição (' + (DATA.meta.feeds || []).length + '): ' + (DATA.meta.feeds || []).join(' · ');
 
   // Contagem por tema
   const counts = { all: articles.length };
@@ -697,7 +697,7 @@ def main() -> int:
             "generated_utc": now.isoformat(),
             "generated_label": generated_label,
             "max_age_days": max_age,
-            "feeds": sorted({f["name"].split(" — ")[0] for f in feeds}),
+            "feeds": sorted(ok_sources, key=str.lower),
         },
         "articles": articles,
     }

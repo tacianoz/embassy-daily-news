@@ -11,9 +11,9 @@ interativo com manchetes, resumos e link de acesso.
 |------|-----------|
 | 🇧🇷 **Brasil** | Menções ao Brasil |
 | 🤝 **BRICS** | Menções ao BRICS |
-| 🌐 **Política externa indiana** | Diplomacia e relações internacionais |
-| 🏛️ **Política interna indiana** | Política doméstica e governo |
-| 📈 **Economia indiana** | Economia, mercados e comércio |
+| 🌐 **Política internacional** | Diplomacia e relações internacionais |
+| 🏛️ **Política interna** | Política doméstica e governo |
+| 📈 **Economia** | Economia, mercados e comércio |
 | ⚡ **Energia** | Petróleo, gás, renováveis e eletricidade |
 | 🔬 **Ciência, tecnologia e inovação** | C&T, espaço e inovação |
 | 🌱 **Mudanças climáticas e meio ambiente** | Clima, meio ambiente e sustentabilidade |
