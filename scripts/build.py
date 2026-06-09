@@ -702,7 +702,8 @@ TEMPLATE = r"""<!DOCTYPE html>
   const articles = DATA.articles;
   const HL = DATA.highlights || [];
   const hlLinks = new Set(HL.map(a => a.link));
-  let activeTheme = HL.length ? 'inicio' : 'all';  // página inicial = Destaques
+  let inicio = HL.length > 0;            // página inicial = Destaques
+  const activeThemes = new Set();        // temas selecionados (cumulativos)
   let activeSource = 'all';
   let activeOrigin = 'all';
   let query = '';
@@ -738,18 +739,32 @@ TEMPLATE = r"""<!DOCTYPE html>
   for (const k in THEMES) counts[k] = 0;
   for (const a of articles) for (const t of a.themes) counts[t] = (counts[t] || 0) + 1;
 
-  // Chips de filtro
+  // Chips de filtro (Início e Todos são exclusivos; temas são cumulativos)
+  function updateChips() {
+    document.querySelectorAll('.chip').forEach(c => {
+      const k = c.dataset.key;
+      const on = k === 'inicio' ? inicio
+        : k === 'all' ? (!inicio && activeThemes.size === 0)
+        : (!inicio && activeThemes.has(k));
+      c.classList.toggle('active', on);
+    });
+  }
   function makeChip(key, label, color, count) {
     const el = document.createElement('button');
-    el.className = 'chip' + (key === activeTheme ? ' active' : '');
+    el.className = 'chip';
     el.dataset.key = key;
     if (color) el.style.setProperty('--cc', color);
     el.innerHTML =
       (color ? '<span class="dot" style="background:' + color + '"></span>' : '') +
       '<span>' + label + '</span><span class="count">' + count + '</span>';
     el.addEventListener('click', () => {
-      activeTheme = key;
-      document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c === el));
+      if (key === 'inicio') { inicio = true; activeThemes.clear(); }
+      else if (key === 'all') { inicio = false; activeThemes.clear(); }
+      else {
+        inicio = false;
+        if (activeThemes.has(key)) activeThemes.delete(key); else activeThemes.add(key);
+      }
+      updateChips();
       render();
     });
     return el;
@@ -759,6 +774,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   for (const k in THEMES) {
     chipsEl.appendChild(makeChip(k, THEMES[k].icon + ' ' + THEMES[k].label, THEMES[k].color, counts[k] || 0));
   }
+  updateChips();
 
   function timeAgo(iso) {
     if (!iso) return '';
@@ -781,7 +797,7 @@ TEMPLATE = r"""<!DOCTYPE html>
       '<span class="badge" style="--bc:' + THEMES[t].color + '">' + THEMES[t].icon + ' ' + esc(THEMES[t].label) + '</span>'
     ).join('');
     const intl = a.origin === 'intl';
-    const hl = hlLinks.has(a.link) && activeTheme !== 'inicio';  // marquinha roxa nos filtros
+    const hl = hlLinks.has(a.link) && !inicio;  // marquinha roxa nos filtros
     return '<article class="card t-' + primary + (intl ? ' is-intl' : '') + (hl ? ' is-hl' : '') + '">' +
       '<div class="bar"></div>' +
       '<div class="body">' +
@@ -793,7 +809,7 @@ TEMPLATE = r"""<!DOCTYPE html>
         '<h3><a href="' + esc(a.link) + '" target="_blank" rel="noopener">' + esc(a.title) + '</a></h3>' +
         (function () {
           // Resumo em PT (✨) só na página Início; nas seções, o resumo original.
-          const useAi = activeTheme === 'inicio' && a.ai_summary_text;
+          const useAi = inicio && a.ai_summary_text;
           const text = useAi ? a.ai_summary_text : a.summary;
           return text ? '<p class="sum">' + (useAi ? '<span class="ai-mark">✨ </span>' : '') + esc(text) + '</p>' : '';
         })() +
@@ -817,14 +833,17 @@ TEMPLATE = r"""<!DOCTYPE html>
 
   function render() {
     let list;
-    if (activeTheme === 'inicio') {
+    if (inicio) {
       // Página inicial: somente os Destaques do dia (sem misturar o resto)
       list = HL.filter(matchFilters);
       const tag = DATA.meta.ai_curated ? 'curadoria por IA' : 'mais relevantes';
       viewTitle.innerHTML = '✨ Destaques do dia <span class="sec-tag">' + tag + '</span>';
       viewTitle.hidden = false;
     } else {
-      list = articles.filter(a => (activeTheme === 'all' || a.themes.includes(activeTheme)) && matchFilters(a));
+      // Temas cumulativos: artigo entra se pertence a QUALQUER tema selecionado
+      // (ou todos, se nenhum selecionado). Combina com origem/jornal/busca.
+      list = articles.filter(a =>
+        (activeThemes.size === 0 || a.themes.some(t => activeThemes.has(t))) && matchFilters(a));
       // matérias destacadas aparecem em primeiro lugar (com marquinha roxa)
       list.sort((x, y) => (hlLinks.has(y.link) ? 1 : 0) - (hlLinks.has(x.link) ? 1 : 0));
       viewTitle.hidden = true;
