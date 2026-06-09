@@ -960,7 +960,8 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
     # Destaques: PREFERÊNCIA ABSOLUTA por imprensa indiana, por nota da IA.
     indian_scored = [a for a in candidates
                      if a.get("origin") == "in" and "ai_score" in a and a["themes"]]
-    indian_scored.sort(key=lambda a: a["ai_score"], reverse=True)
+    # nota da IA primeiro; entre notas próximas, preferência ao veículo grande.
+    indian_scored.sort(key=lambda a: (a["ai_score"], a["priority"]), reverse=True)
     highlights = indian_scored[:8]
 
     # ---- Chamada 2: RESUMOS em PT apenas para os Destaques ----
@@ -1014,7 +1015,7 @@ def main() -> int:
 
     seen_links: set[str] = set()
     seen_titles: set[str] = set()
-    seen_title_tokens: list[set] = []
+    seen_clusters: list[dict] = []  # {"tokens": set, "article": dict} p/ quase-dups
     articles: list[dict] = []
     ok_sources: set[str] = set()
 
@@ -1045,11 +1046,6 @@ def main() -> int:
             title_key = normalize(title).strip()
             if link_key in seen_links or (title_key and title_key in seen_titles):
                 continue
-            # Quase-duplicata: mesma notícia em veículos diferentes, com
-            # manchetes diferentes (compara conjuntos de palavras do título).
-            tok = title_tokens(title)
-            if any(titles_similar(tok, s) for s in seen_title_tokens):
-                continue
             # filtro por data: só hoje e ontem
             if item["published"] is None:
                 if require_date:
@@ -1078,13 +1074,7 @@ def main() -> int:
             if not themes:
                 continue  # só interessa o que cai em algum tema
 
-            seen_links.add(link_key)
-            if title_key:
-                seen_titles.add(title_key)
-            if tok:
-                seen_title_tokens.append(tok)
-            ok_sources.add(outlet)
-            articles.append({
+            article = {
                 "title": title,
                 "link": item["link"],
                 "summary": (item["summary"][:320] + "…") if len(item["summary"]) > 320 else item["summary"],
@@ -1093,7 +1083,25 @@ def main() -> int:
                 "themes": themes,
                 "priority": is_priority(outlet),
                 "origin": "intl" if intl else "in",
-            })
+            }
+
+            # Quase-duplicata (mesma notícia, veículos/manchetes diferentes):
+            # mantém a versão do veículo de MAIOR porte; senão, a primeira.
+            tok = title_tokens(title)
+            dup = next((c for c in seen_clusters if titles_similar(tok, c["tokens"])), None)
+            if dup is not None:
+                kept = dup["article"]
+                if article["priority"] and not kept["priority"]:
+                    kept.update(article)   # promove a versão do veículo grande
+                    dup["tokens"] = tok
+                continue
+
+            seen_links.add(link_key)
+            if title_key:
+                seen_titles.add(title_key)
+            ok_sources.add(outlet)
+            articles.append(article)
+            seen_clusters.append({"tokens": tok, "article": article})
 
     # Ranking heurístico de relevância (determinístico, sem IA). Pondera tema
     # (foco da Embaixada: Brasil ≫ BRICS > política internacional > demais),
@@ -1137,6 +1145,7 @@ def main() -> int:
         articles.sort(key=lambda a: (
             1 if "ai_score" in a else 0,
             a.get("ai_score", 0),
+            1 if a["priority"] else 0,   # desempate: veículo grande primeiro
             a["score"],
             a["published"] or "",
         ), reverse=True)
