@@ -586,6 +586,27 @@ TEMPLATE = r"""<!DOCTYPE html>
   .empty { text-align: center; color: var(--muted); padding: 60px 20px; }
   footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 12.5px; padding: 24px 0 50px; }
   footer .wrap { display: flex; flex-direction: column; gap: 6px; }
+
+  /* ---- Mobile: cabeçalho e filtros mais compactos ---- */
+  @media (max-width: 640px) {
+    .top-inner { padding: 14px 16px 12px; }
+    .brandline { gap: 12px; }
+    .logo-svg { height: 54px; }
+    h1 { font-size: 20px; }
+    .subtitle { font-size: 11.5px; margin-top: 3px; }
+    .stats { gap: 12px; margin-top: 9px; font-size: 11.5px; }
+    .controls { padding: 8px 0; }
+    .controls-inner { gap: 8px; }
+    .search { flex: 1 1 100%; order: 1; padding: 8px 14px; }
+    .srcpick { flex: 1 1 calc(50% - 5px); order: 2; padding: 7px 12px; }
+    .srcpick select { max-width: 100%; width: 100%; }
+    /* chips numa única linha, com rolagem horizontal (não quebram a tela) */
+    .chips { order: 3; width: 100%; flex-wrap: nowrap; overflow-x: auto;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; }
+    .chips::-webkit-scrollbar { display: none; }
+    .chip { flex: 0 0 auto; }
+    .grid { grid-template-columns: 1fr; }
+  }
 /*THEME_CSS*/
 </style>
 </head>
