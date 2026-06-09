@@ -52,5 +52,18 @@
     <description>Scientists warn rising carbon emissions affect biodiversity and air quality.</description>
     <pubDate>Fri, 06 Jun 2026 09:00:00 +0000</pubDate>
   </item>
+  <item>
+    <title>India and Brazil sign trade pact ahead of BRICS meet - The Hindu</title>
+    <link>https://news.google.com/articles/abc123</link>
+    <description>Coverage of growing India-Brazil ties.</description>
+    <pubDate>Mon, 09 Jun 2026 07:00:00 +0000</pubDate>
+    <source url="https://www.thehindu.com">The Hindu</source>
+  </item>
+  <item>
+    <title>Parliament passes new bill as opposition protests</title>
+    <link>https://example.com/news/dup-different-url</link>
+    <description>Duplicada por título — deve ser removida.</description>
+    <pubDate>Mon, 09 Jun 2026 03:30:00 +0000</pubDate>
+  </item>
 </channel>
 </rss>

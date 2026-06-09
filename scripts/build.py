@@ -35,6 +35,13 @@ from xml.etree import ElementTree as ET
 # seção (ex.: caderno de economia, ciência etc.).
 # --------------------------------------------------------------------------- #
 FEEDS = [
+    # Buscas dedicadas (Google News RSS) — varrem toda a imprensa indiana
+    # procurando menções a Brasil e BRICS, que raramente aparecem nos feeds
+    # de seção. O <source> de cada item traz o nome real do veículo.
+    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+India&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"]},
+    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+(Lula+OR+Mercosur+OR+trade+OR+BRICS)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"]},
+    {"name": "Google News — BRICS", "url": "https://news.google.com/rss/search?q=BRICS&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brics"]},
+
     # The Hindu
     {"name": "The Hindu — Nacional", "url": "https://www.thehindu.com/news/national/feeder/default.rss", "themes": ["politica_interna"]},
     {"name": "The Hindu — Internacional", "url": "https://www.thehindu.com/news/international/feeder/default.rss", "themes": ["politica_externa"]},
@@ -300,6 +307,8 @@ def parse_feed(raw: bytes, source: str) -> list[dict]:
         link = _find_link(entry)
         summary = _find_text(entry, ("description", "summary", "content", "encoded"))
         date_raw = _find_text(entry, ("pubDate", "published", "updated", "date"))
+        # Google News inclui <source>Veículo</source> em cada item
+        item_source = _find_text(entry, ("source",))
         if not title or not link:
             continue
         items.append({
@@ -308,6 +317,7 @@ def parse_feed(raw: bytes, source: str) -> list[dict]:
             "summary": strip_html(summary),
             "published": parse_date(date_raw),
             "source": source,
+            "outlet": strip_html(item_source) if item_source else "",
         })
     return items
 
@@ -404,6 +414,13 @@ TEMPLATE = r"""<!DOCTYPE html>
   }
   .search input { border: 0; outline: 0; background: transparent; color: var(--ink);
     width: 100%; font-size: 14px; }
+  .srcpick {
+    display: flex; align-items: center; gap: 8px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px;
+    box-shadow: var(--shadow); flex: 0 1 auto;
+  }
+  .srcpick select { border: 0; outline: 0; background: transparent; color: var(--ink);
+    font-size: 14px; font-weight: 600; max-width: 200px; cursor: pointer; }
 
   .chips { display: flex; gap: 8px; flex-wrap: wrap; }
   .chip {
@@ -468,7 +485,11 @@ TEMPLATE = r"""<!DOCTYPE html>
   <div class="wrap controls-inner">
     <label class="search">
       <span aria-hidden="true">🔎</span>
-      <input id="q" type="search" placeholder="Buscar por palavra-chave, fonte, assunto…" autocomplete="off">
+      <input id="q" type="search" placeholder="Buscar por palavra-chave, assunto…" autocomplete="off">
+    </label>
+    <label class="srcpick">
+      <span aria-hidden="true">📰</span>
+      <select id="src"><option value="all">Todos os jornais</option></select>
     </label>
     <div class="chips" id="chips"></div>
   </div>
@@ -493,16 +514,29 @@ TEMPLATE = r"""<!DOCTYPE html>
   const THEMES = DATA.themes;
   const articles = DATA.articles;
   let activeTheme = 'all';
+  let activeSource = 'all';
   let query = '';
 
   const grid = document.getElementById('grid');
   const empty = document.getElementById('empty');
   const chipsEl = document.getElementById('chips');
+  const srcEl = document.getElementById('src');
 
   // Estatísticas do cabeçalho
   document.getElementById('stat-total').textContent = articles.length;
-  const sources = [...new Set(articles.map(a => a.source))];
+  const sources = [...new Set(articles.map(a => a.source))].sort((a, b) => a.localeCompare(b));
   document.getElementById('stat-sources').textContent = sources.length;
+
+  // Seletor de jornal (com contagem por fonte)
+  const srcCounts = {};
+  for (const a of articles) srcCounts[a.source] = (srcCounts[a.source] || 0) + 1;
+  for (const s of sources) {
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s + ' (' + srcCounts[s] + ')';
+    srcEl.appendChild(opt);
+  }
+  srcEl.addEventListener('change', e => { activeSource = e.target.value; render(); });
   document.getElementById('stat-updated').textContent = DATA.meta.generated_label;
   document.getElementById('sources-list').textContent =
     'Fontes monitoradas: ' + (DATA.meta.feeds || []).join(' · ');
@@ -569,11 +603,12 @@ TEMPLATE = r"""<!DOCTYPE html>
     const q = query.trim().toLowerCase();
     const list = articles.filter(a => {
       const okTheme = activeTheme === 'all' || a.themes.includes(activeTheme);
+      const okSource = activeSource === 'all' || a.source === activeSource;
       const okQuery = !q ||
         a.title.toLowerCase().includes(q) ||
         (a.summary || '').toLowerCase().includes(q) ||
         a.source.toLowerCase().includes(q);
-      return okTheme && okQuery;
+      return okTheme && okSource && okQuery;
     });
     grid.innerHTML = list.map(cardHTML).join('');
     empty.hidden = list.length !== 0;
@@ -603,23 +638,24 @@ def main() -> int:
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(days=max_age)
 
-    seen: set[str] = set()
+    seen_links: set[str] = set()
+    seen_titles: set[str] = set()
     articles: list[dict] = []
-    ok_sources: list[str] = []
+    ok_sources: set[str] = set()
 
     for feed in feeds:
         name, url = feed["name"], feed["url"]
         hint = feed.get("themes", [])
+        outlet_default = name.split(" — ")[0]  # ex.: "The Hindu", "Google News"
         print(f"- {name}")
         raw = fetch(url)
         if not raw:
             continue
         parsed = parse_feed(raw, name)
-        if parsed:
-            ok_sources.append(name)
         for item in parsed:
-            key = item["link"].split("?")[0].strip().lower()
-            if key in seen:
+            link_key = item["link"].split("?")[0].strip().lower()
+            title_key = normalize(item["title"]).strip()
+            if link_key in seen_links or (title_key and title_key in seen_titles):
                 continue
             # filtro por data (mantém itens sem data — alguns feeds omitem)
             if item["published"] and item["published"] < cutoff:
@@ -627,12 +663,24 @@ def main() -> int:
             themes = classify(item, hint)
             if not themes:
                 continue  # só interessa o que cai em algum tema
-            seen.add(key)
+
+            # Nome do veículo: usa o <source> (Google News) quando houver,
+            # senão o nome-base do feed.
+            outlet = item.get("outlet") or outlet_default
+            title = item["title"]
+            # Google News acrescenta " - Veículo" ao fim do título; remove.
+            if item.get("outlet") and title.endswith(" - " + item["outlet"]):
+                title = title[: -(len(item["outlet"]) + 3)].strip()
+
+            seen_links.add(link_key)
+            if title_key:
+                seen_titles.add(title_key)
+            ok_sources.add(outlet)
             articles.append({
-                "title": item["title"],
+                "title": title,
                 "link": item["link"],
                 "summary": (item["summary"][:320] + "…") if len(item["summary"]) > 320 else item["summary"],
-                "source": item["source"],
+                "source": outlet,
                 "published": item["published"].isoformat() if item["published"] else None,
                 "themes": themes,
             })
