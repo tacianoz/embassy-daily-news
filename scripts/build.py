@@ -238,18 +238,30 @@ USER_AGENT = "Mozilla/5.0 (compatible; EmbassyDailyNews/1.0; +https://github.com
 # Veículos indianos reconhecidos. Resultados de buscas agregadas (Google News)
 # só entram se a fonte estiver nesta lista — garante apenas imprensa indiana.
 INDIAN_OUTLETS = [
+    # Grandes jornais / agências
     "the hindu", "businessline", "times of india", "hindustan times",
     "indian express", "economic times", "mint", "livemint", "ndtv",
-    "business standard", "the wire", "scroll", "down to earth", "firstpost",
+    "ndtv profit", "business standard", "the wire", "scroll", "firstpost",
     "news18", "india today", "the print", "theprint", "deccan herald",
     "deccan chronicle", "the tribune", "tribune india", "outlook",
     "moneycontrol", "financial express", "wion", "zee news", "zee business",
     "republic world", "business today", "cnbc tv18", "cnbctv18", "frontline",
     "the quint", "swarajya", "the federal", "dna india", "free press journal",
-    "national herald", "the statesman", "etenergyworld", "mercom india",
-    "the new indian express", "telangana today", "rediff", "oneindia",
-    "ani", "pti", "chinimandi", "saur energy", "pv magazine", "mongabay",
-    "autocar", "ndtv profit", "the print",
+    "national herald", "the statesman", "the new indian express",
+    "telangana today", "rediff", "oneindia", "ani", "pti",
+    "press trust of india", "fortune india", "the hindu businessline",
+    # Tecnologia / startups
+    "inc42", "entrackr", "medianama", "yourstory", "analytics india",
+    "the ken", "techcircle", "gadgets 360", "gadgets360", "trak.in",
+    "ettech", "et tech",
+    # Energia / mineração / agro / químico
+    "etenergyworld", "et energyworld", "mercom", "saur energy", "pv magazine",
+    "chinimandi", "energetica india", "power line", "steelmint", "bigmint",
+    "indian chemical news", "krishak jagat", "rural voice", "etauto",
+    "et auto", "autocar",
+    # Clima / meio ambiente / saúde
+    "down to earth", "mongabay", "carbon copy", "the third pole",
+    "ethealthworld", "et healthworld", "medical dialogues", "pharmabiz",
 ]
 
 # Jornais de grande circulação — recebem prioridade na ordenação e destaque.
@@ -1064,7 +1076,6 @@ def main() -> int:
         name, url = feed["name"], feed["url"]
         hint = feed.get("themes", [])
         allow_intl = feed.get("allow_intl", False)
-        scope_india = feed.get("scope_india", False)
         outlet_default = name.split(" — ")[0]  # ex.: "The Hindu", "Google News"
         print(f"- {name}")
         raw = fetch(url)
@@ -1097,19 +1108,12 @@ def main() -> int:
             indian = is_indian(outlet)
             known_intl = is_international(outlet)
             intl = known_intl and not indian
-            # Filtragem de fontes em buscas agregadas (Google News):
-            if item.get("outlet"):
-                if scope_india:
-                    # Busca "India + tema": resultado já é indiano. Só descarta
-                    # agências estrangeiras conhecidas; fontes desconhecidas
-                    # (veículos/portais especializados indianos) são mantidas.
-                    if intl:
-                        continue
-                    intl = False  # trata desconhecidas como imprensa indiana
-                elif not indian and not (allow_intl and intl):
-                    # Busca de Brasil/BRICS: só indianas conhecidas (ou grandes
-                    # agências, quando allow_intl).
-                    continue
+            # Buscas agregadas (Google News): SÓ veículos reconhecidos —
+            # imprensa indiana reputada (lista INDIAN_OUTLETS) ou, quando o
+            # feed permite, grandes agências internacionais. Sites aleatórios/
+            # desconhecidos (inclusive brasileiros) são descartados.
+            if item.get("outlet") and not indian and not (allow_intl and intl):
+                continue
 
             themes = classify(item, hint)
             if not themes:
