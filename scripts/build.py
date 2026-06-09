@@ -46,10 +46,10 @@ FEEDS = [
     # Buscas dedicadas por tema (Google News) — garantem recall de assuntos
     # que os feeds de seção não cobrem (ex.: biocombustíveis). Só imprensa
     # indiana (sem allow_intl). O tema já vem carimbado via "themes".
-    {"name": "Google News — Energia", "url": "https://news.google.com/rss/search?q=India+(ethanol+OR+biofuel+OR+%22flex+fuel%22+OR+biogas+OR+biodiesel+OR+bioenergy+OR+%22ethanol+blending%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["energia"]},
-    {"name": "Google News — Energia", "url": "https://news.google.com/rss/search?q=India+(%22renewable+energy%22+OR+%22green+hydrogen%22+OR+%22solar+power%22+OR+%22wind+energy%22+OR+%22nuclear+power%22+OR+%22clean+energy%22+OR+%22energy+transition%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["energia"]},
-    {"name": "Google News — C&T", "url": "https://news.google.com/rss/search?q=India+(ISRO+OR+semiconductor+OR+%22artificial+intelligence%22+OR+%22space+mission%22+OR+startup+OR+innovation+OR+DRDO)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["cti"]},
-    {"name": "Google News — Clima", "url": "https://news.google.com/rss/search?q=India+(%22climate+change%22+OR+emissions+OR+%22net+zero%22+OR+pollution+OR+biodiversity+OR+%22COP30%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["clima"]},
+    {"name": "Google News — Energia", "url": "https://news.google.com/rss/search?q=India+(ethanol+OR+biofuel+OR+%22flex+fuel%22+OR+biogas+OR+biodiesel+OR+bioenergy+OR+%22ethanol+blending%22+OR+E85+OR+E20)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["energia"], "scope_india": True},
+    {"name": "Google News — Energia", "url": "https://news.google.com/rss/search?q=India+(%22renewable+energy%22+OR+%22green+hydrogen%22+OR+%22solar+power%22+OR+%22wind+energy%22+OR+%22nuclear+power%22+OR+%22clean+energy%22+OR+%22energy+transition%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["energia"], "scope_india": True},
+    {"name": "Google News — C&T", "url": "https://news.google.com/rss/search?q=India+(ISRO+OR+semiconductor+OR+%22artificial+intelligence%22+OR+%22space+mission%22+OR+startup+OR+innovation+OR+DRDO)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["cti"], "scope_india": True},
+    {"name": "Google News — Clima", "url": "https://news.google.com/rss/search?q=India+(%22climate+change%22+OR+emissions+OR+%22net+zero%22+OR+pollution+OR+biodiversity+OR+%22COP30%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["clima"], "scope_india": True},
 
     # The Hindu
     {"name": "The Hindu — Nacional", "url": "https://www.thehindu.com/news/national/feeder/default.rss", "themes": []},
@@ -229,6 +229,8 @@ INDIAN_OUTLETS = [
     "the quint", "swarajya", "the federal", "dna india", "free press journal",
     "national herald", "the statesman", "etenergyworld", "mercom india",
     "the new indian express", "telangana today", "rediff", "oneindia",
+    "ani", "pti", "chinimandi", "saur energy", "pv magazine", "mongabay",
+    "autocar", "ndtv profit", "the print",
 ]
 
 # Jornais de grande circulação — recebem prioridade na ordenação e destaque.
@@ -750,6 +752,7 @@ def main() -> int:
         name, url = feed["name"], feed["url"]
         hint = feed.get("themes", [])
         allow_intl = feed.get("allow_intl", False)
+        scope_india = feed.get("scope_india", False)
         outlet_default = name.split(" — ")[0]  # ex.: "The Hindu", "Google News"
         print(f"- {name}")
         raw = fetch(url)
@@ -772,11 +775,20 @@ def main() -> int:
             # senão o nome-base do feed.
             outlet = item.get("outlet") or outlet_default
             indian = is_indian(outlet)
-            intl = is_international(outlet) and not indian
-            # Buscas agregadas só aceitam imprensa indiana ou, quando o feed
-            # permite (allow_intl), grandes agências internacionais.
-            if item.get("outlet"):  # item de busca agregada (Google News)
-                if not indian and not (allow_intl and intl):
+            known_intl = is_international(outlet)
+            intl = known_intl and not indian
+            # Filtragem de fontes em buscas agregadas (Google News):
+            if item.get("outlet"):
+                if scope_india:
+                    # Busca "India + tema": resultado já é indiano. Só descarta
+                    # agências estrangeiras conhecidas; fontes desconhecidas
+                    # (veículos/portais especializados indianos) são mantidas.
+                    if intl:
+                        continue
+                    intl = False  # trata desconhecidas como imprensa indiana
+                elif not indian and not (allow_intl and intl):
+                    # Busca de Brasil/BRICS: só indianas conhecidas (ou grandes
+                    # agências, quando allow_intl).
                     continue
 
             themes = classify(item, hint)
