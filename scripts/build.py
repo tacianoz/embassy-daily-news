@@ -38,12 +38,12 @@ FEEDS = [
     # Buscas dedicadas (Google News RSS) — varrem toda a imprensa indiana
     # procurando menções a Brasil e BRICS, que raramente aparecem nos feeds
     # de seção. O <source> de cada item traz o nome real do veículo.
-    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+India&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"]},
-    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+(Lula+OR+Mercosur+OR+trade+OR+BRICS)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"]},
-    {"name": "Google News — BRICS", "url": "https://news.google.com/rss/search?q=BRICS&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brics"]},
+    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+India&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"], "indian_only": True},
+    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+(Lula+OR+Mercosur+OR+trade+OR+BRICS)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"], "indian_only": True},
+    {"name": "Google News — BRICS", "url": "https://news.google.com/rss/search?q=BRICS+India&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brics"], "indian_only": True},
 
     # The Hindu
-    {"name": "The Hindu — Nacional", "url": "https://www.thehindu.com/news/national/feeder/default.rss", "themes": ["politica_interna"]},
+    {"name": "The Hindu — Nacional", "url": "https://www.thehindu.com/news/national/feeder/default.rss", "themes": []},
     {"name": "The Hindu — Internacional", "url": "https://www.thehindu.com/news/international/feeder/default.rss", "themes": ["politica_externa"]},
     {"name": "The Hindu — Economia", "url": "https://www.thehindu.com/business/Economy/feeder/default.rss", "themes": ["economia"]},
     {"name": "The Hindu — Negócios", "url": "https://www.thehindu.com/business/feeder/default.rss", "themes": ["economia"]},
@@ -52,21 +52,23 @@ FEEDS = [
     {"name": "The Hindu — Energia e Meio Ambiente", "url": "https://www.thehindu.com/sci-tech/energy-and-environment/feeder/default.rss", "themes": ["energia", "clima"]},
 
     # The Indian Express
-    {"name": "Indian Express — Índia", "url": "https://indianexpress.com/section/india/feed/", "themes": ["politica_interna"]},
+    {"name": "Indian Express — Índia", "url": "https://indianexpress.com/section/india/feed/", "themes": []},
+    {"name": "Indian Express — Política", "url": "https://indianexpress.com/section/political-pulse/feed/", "themes": ["politica_interna"]},
     {"name": "Indian Express — Mundo", "url": "https://indianexpress.com/section/world/feed/", "themes": ["politica_externa"]},
     {"name": "Indian Express — Economia", "url": "https://indianexpress.com/section/business/economy/feed/", "themes": ["economia"]},
     {"name": "Indian Express — Tecnologia", "url": "https://indianexpress.com/section/technology/feed/", "themes": ["cti"]},
     {"name": "Indian Express — Clima", "url": "https://indianexpress.com/section/india/climate-change/feed/", "themes": ["clima"]},
 
     # The Times of India
-    {"name": "Times of India — Índia", "url": "https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms", "themes": ["politica_interna"]},
+    {"name": "Times of India — Índia", "url": "https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms", "themes": []},
+    {"name": "Times of India — Política Interna", "url": "https://timesofindia.indiatimes.com/rssfeeds/4719148.cms", "themes": ["politica_interna"]},
     {"name": "Times of India — Mundo", "url": "https://timesofindia.indiatimes.com/rssfeeds/296589292.cms", "themes": ["politica_externa"]},
     {"name": "Times of India — Negócios", "url": "https://timesofindia.indiatimes.com/rssfeeds/1898055.cms", "themes": ["economia"]},
     {"name": "Times of India — Ciência", "url": "https://timesofindia.indiatimes.com/rssfeeds/-2128672765.cms", "themes": ["cti"]},
     {"name": "Times of India — Meio Ambiente", "url": "https://timesofindia.indiatimes.com/rssfeeds/2647163.cms", "themes": ["clima"]},
 
     # Hindustan Times
-    {"name": "Hindustan Times — Índia", "url": "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml", "themes": ["politica_interna"]},
+    {"name": "Hindustan Times — Índia", "url": "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml", "themes": []},
     {"name": "Hindustan Times — Mundo", "url": "https://www.hindustantimes.com/feeds/rss/world-news/rssfeed.xml", "themes": ["politica_externa"]},
     {"name": "Hindustan Times — Negócios", "url": "https://www.hindustantimes.com/feeds/rss/business/rssfeed.xml", "themes": ["economia"]},
 
@@ -80,7 +82,7 @@ FEEDS = [
     {"name": "Livemint — Notícias", "url": "https://www.livemint.com/rss/news", "themes": []},
 
     # NDTV
-    {"name": "NDTV — Índia", "url": "https://feeds.feedburner.com/ndtvnews-india-news", "themes": ["politica_interna"]},
+    {"name": "NDTV — Índia", "url": "https://feeds.feedburner.com/ndtvnews-india-news", "themes": []},
     {"name": "NDTV — Mundo", "url": "https://feeds.feedburner.com/ndtvnews-world-news", "themes": ["politica_externa"]},
 
     # Mídia independente / análise
@@ -140,6 +142,8 @@ THEMES = {
             "supreme court", "high court", "opposition", "rahul gandhi",
             "governance", "chief minister", "legislation", "no confidence",
             "coalition", "home ministry", "amit shah", "assembly polls",
+            "narendra modi", "central government", "state government",
+            "union minister", "aam aadmi party", "electoral", "ruling party",
         ],
     },
     "economia": {
@@ -195,6 +199,40 @@ THEMES = {
 }
 
 USER_AGENT = "Mozilla/5.0 (compatible; EmbassyDailyNews/1.0; +https://github.com/tacianoz/embassy-daily-news)"
+
+# Veículos indianos reconhecidos. Resultados de buscas agregadas (Google News)
+# só entram se a fonte estiver nesta lista — garante apenas imprensa indiana.
+INDIAN_OUTLETS = [
+    "the hindu", "businessline", "times of india", "hindustan times",
+    "indian express", "economic times", "mint", "livemint", "ndtv",
+    "business standard", "the wire", "scroll", "down to earth", "firstpost",
+    "news18", "india today", "the print", "theprint", "deccan herald",
+    "deccan chronicle", "the tribune", "tribune india", "outlook",
+    "moneycontrol", "financial express", "wion", "zee news", "zee business",
+    "republic world", "business today", "cnbc tv18", "cnbctv18", "frontline",
+    "the quint", "swarajya", "the federal", "dna india", "free press journal",
+    "national herald", "the statesman", "etenergyworld", "mercom india",
+    "the new indian express", "telangana today", "rediff", "oneindia",
+]
+
+# Jornais de grande circulação — recebem prioridade na ordenação e destaque.
+PRIORITY_OUTLETS = [
+    "economic times", "the hindu", "businessline", "mint", "livemint",
+    "hindustan times", "times of india",
+]
+
+
+def matches_outlet(source: str, tokens: list[str]) -> bool:
+    blob = normalize(source)
+    return any((" " + t + " ") in blob for t in tokens)
+
+
+def is_indian(source: str) -> bool:
+    return matches_outlet(source, INDIAN_OUTLETS)
+
+
+def is_priority(source: str) -> bool:
+    return matches_outlet(source, PRIORITY_OUTLETS)
 
 # --------------------------------------------------------------------------- #
 # Utilidades
@@ -446,6 +484,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   .card .body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 10px; height: 100%; }
   .card .meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
   .source { font-weight: 700; color: var(--ink); }
+  .source.pri::before { content: "★ "; color: #f5b301; }
   .card h3 { margin: 0; font-size: 16px; line-height: 1.35; font-weight: 700; }
   .card h3 a { text-decoration: none; }
   .card h3 a:hover { text-decoration: underline; }
@@ -590,7 +629,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     return '<article class="card t-' + primary + '">' +
       '<div class="bar"></div>' +
       '<div class="body">' +
-        '<div class="meta"><span class="source">' + esc(a.source) + '</span>' +
+        '<div class="meta"><span class="source' + (a.priority ? ' pri' : '') + '">' + esc(a.source) + '</span>' +
           (a.time_ago ? '<span>•</span><span>' + esc(a.time_ago) + '</span>' : '') + '</div>' +
         '<h3><a href="' + esc(a.link) + '" target="_blank" rel="noopener">' + esc(a.title) + '</a></h3>' +
         (a.summary ? '<p class="sum">' + esc(a.summary) + '</p>' : '') +
@@ -646,6 +685,7 @@ def main() -> int:
     for feed in feeds:
         name, url = feed["name"], feed["url"]
         hint = feed.get("themes", [])
+        indian_only = feed.get("indian_only", False)
         outlet_default = name.split(" — ")[0]  # ex.: "The Hindu", "Google News"
         print(f"- {name}")
         raw = fetch(url)
@@ -660,13 +700,18 @@ def main() -> int:
             # filtro por data (mantém itens sem data — alguns feeds omitem)
             if item["published"] and item["published"] < cutoff:
                 continue
-            themes = classify(item, hint)
-            if not themes:
-                continue  # só interessa o que cai em algum tema
 
             # Nome do veículo: usa o <source> (Google News) quando houver,
             # senão o nome-base do feed.
             outlet = item.get("outlet") or outlet_default
+            # Buscas agregadas só aceitam fontes da imprensa indiana.
+            if indian_only and not is_indian(outlet):
+                continue
+
+            themes = classify(item, hint)
+            if not themes:
+                continue  # só interessa o que cai em algum tema
+
             title = item["title"]
             # Google News acrescenta " - Veículo" ao fim do título; remove.
             if item.get("outlet") and title.endswith(" - " + item["outlet"]):
@@ -683,10 +728,13 @@ def main() -> int:
                 "source": outlet,
                 "published": item["published"].isoformat() if item["published"] else None,
                 "themes": themes,
+                "priority": is_priority(outlet),
             })
 
-    # ordena: com data primeiro (mais recente), depois sem data
+    # Ordena por data (mais recente primeiro) e depois eleva os jornais
+    # de grande circulação ao topo, preservando a ordem por data em cada grupo.
     articles.sort(key=lambda a: a["published"] or "", reverse=True)
+    articles.sort(key=lambda a: 0 if a["priority"] else 1)
 
     # Rótulo de atualização em horário de Brasília (UTC-3)
     brt = now.astimezone(timezone(timedelta(hours=-3)))

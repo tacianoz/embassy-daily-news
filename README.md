@@ -65,6 +65,15 @@ MAX_AGE_DAYS=3650 python3 scripts/build.py
 - **Palavras-chave dos temas**: edite o dicionário `THEMES` no mesmo arquivo.
 - **Horário**: ajuste o `cron` em `.github/workflows/daily.yml`.
 - **Janela de notícias**: variável `MAX_AGE_DAYS` (padrão: 3 dias).
+- **Apenas imprensa indiana**: as buscas agregadas (Google News) só aceitam
+  veículos da lista `INDIAN_OUTLETS`; fontes estrangeiras são descartadas.
+- **Jornais em destaque**: os veículos em `PRIORITY_OUTLETS` (Economic Times,
+  The Hindu, Mint, Hindustan Times, Times of India) aparecem primeiro e com
+  marcação ★.
+
+> **Nota sobre os temas:** as seções gerais "Nacional/Índia" não recebem mais
+> rótulo automático de *Política interna* — a classificação é feita por
+> palavras-chave, evitando que matérias de crime/regionais entrem no tema.
 
 ## Variáveis de ambiente
 

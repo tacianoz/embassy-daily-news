@@ -65,5 +65,12 @@
     <description>Duplicada por título — deve ser removida.</description>
     <pubDate>Mon, 09 Jun 2026 03:30:00 +0000</pubDate>
   </item>
+  <item>
+    <title>Brazil economy grows as India ties expand - Reuters</title>
+    <link>https://news.google.com/articles/foreign1</link>
+    <description>Fonte estrangeira — deve ser filtrada quando indian_only.</description>
+    <pubDate>Mon, 09 Jun 2026 08:00:00 +0000</pubDate>
+    <source url="https://www.reuters.com">Reuters</source>
+  </item>
 </channel>
 </rss>
