@@ -996,8 +996,11 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
             candidates[idx]["themes"] = [t for t in dict.fromkeys(temas) if t in THEMES]
 
     # Destaques: PREFERÊNCIA ABSOLUTA por imprensa indiana, por nota da IA.
+    # Só veículos indianos RECONHECIDOS (não "presumidos"): evita que um site
+    # brasileiro/estrangeiro desconhecido — rotulado como indiano nas buscas
+    # temáticas — apareça nos Destaques.
     indian_scored = [a for a in candidates
-                     if a.get("origin") == "in" and "ai_score" in a and a["themes"]]
+                     if "ai_score" in a and a["themes"] and is_indian(a["source"])]
     # nota da IA primeiro; entre notas próximas, preferência ao veículo grande.
     indian_scored.sort(key=lambda a: (a["ai_score"], a["priority"]), reverse=True)
     highlights = indian_scored[:8]
@@ -1191,7 +1194,7 @@ def main() -> int:
     # Destaques sempre presentes na página principal: curadoria da IA quando
     # disponível; senão, os mais relevantes pelo heurístico. Em ambos os casos,
     # PREFERÊNCIA ABSOLUTA por imprensa indiana (sem internacionais).
-    highlights = ai_highlights if ai_curated else [a for a in articles if a["origin"] == "in"][:8]
+    highlights = ai_highlights if ai_curated else [a for a in articles if is_indian(a["source"])][:8]
 
     # Diagnóstico (aparece no log do Actions): mostra a realidade do dia.
     _bio_kw = ("ethanol", "biofuel", "flex fuel", "biogas", "biodiesel",
