@@ -793,15 +793,15 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
 
     for a in articles[:40]:           # topo global
         _add(a)
-    for theme in THEMES:              # melhores de cada tema (cobre cada seção)
+    for theme in THEMES:              # até 30 por tema => cada seção é ranqueada pela IA
         c = 0
         for a in articles:
             if theme in a["themes"]:
                 _add(a)
                 c += 1
-                if c >= 18:
+                if c >= 30:
                     break
-    candidates = candidates[:120]
+    candidates = candidates[:160]
     listing = "\n".join(
         f'{i}: "{a["title"]}" — {a["source"]} [{", ".join(a["themes"])}]'
         for i, a in enumerate(candidates)
@@ -1024,6 +1024,17 @@ def main() -> int:
     # disponível; senão, os mais relevantes pelo heurístico. Em ambos os casos,
     # PREFERÊNCIA ABSOLUTA por imprensa indiana (sem internacionais).
     highlights = ai_highlights if ai_curated else [a for a in articles if a["origin"] == "in"][:8]
+
+    # Diagnóstico (aparece no log do Actions): mostra a realidade do dia.
+    _bio_kw = ("ethanol", "biofuel", "flex fuel", "biogas", "biodiesel", "e85", "e20", "bioenergy")
+    bio = [a for a in articles if any(" " + k + " " in normalize(a["title"] + " " + a["summary"]) for k in _bio_kw)]
+    print(f"  [diag] biocombustível no período (hoje/ontem): {len(bio)}")
+    for a in bio[:6]:
+        print(f"         score={a.get('ai_score', '-')} | {a['source']} | {a['title'][:64]}")
+    en = [a for a in articles if "energia" in a["themes"]]
+    print(f"  [diag] Energia: {len(en)} matérias — topo:")
+    for a in en[:6]:
+        print(f"         score={a.get('ai_score', '-')} | {a['source']} | {a['title'][:64]}")
 
     # Rótulo de atualização em horário de Brasília (UTC-3)
     brt = now.astimezone(timezone(timedelta(hours=-3)))
