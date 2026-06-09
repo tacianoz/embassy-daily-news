@@ -961,7 +961,9 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         "arsenal nuclear' é politica_externa, NÃO energia; 'drone militar' não "
         "é energia; 'balsa turística que aproveita a energia da água' NÃO é "
         "energia (é curiosidade). Se não se encaixar em nenhum tema de "
-        "interesse da Embaixada, use [].\n"
+        "interesse da Embaixada, use []. ORDENE os temas do MAIS CENTRAL (o "
+        "que melhor define o assunto principal da notícia) para o menos "
+        "central.\n"
         "- \"score\": " + SCORE_RUBRIC + "\n\n"
         'Responda APENAS em JSON, sem texto fora dele: '
         '{"itens": {"<i>": {"temas": ["..."], "score": <0-100>}}}.\n\n'
@@ -987,10 +989,11 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
             n_scored += 1
         except (TypeError, ValueError):
             pass
-        # Recategorização inteligente: a IA decide os temas reais da matéria.
+        # Recategorização inteligente: a IA decide os temas reais da matéria,
+        # ordenados do MAIS CENTRAL para o menos (preserva a ordem da IA).
         temas = v.get("temas")
         if isinstance(temas, list):
-            candidates[idx]["themes"] = [t for t in THEMES if t in temas]
+            candidates[idx]["themes"] = [t for t in dict.fromkeys(temas) if t in THEMES]
 
     # Destaques: PREFERÊNCIA ABSOLUTA por imprensa indiana, por nota da IA.
     indian_scored = [a for a in candidates
