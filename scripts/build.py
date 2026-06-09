@@ -38,9 +38,10 @@ FEEDS = [
     # Buscas dedicadas (Google News RSS) — varrem toda a imprensa indiana
     # procurando menções a Brasil e BRICS, que raramente aparecem nos feeds
     # de seção. O <source> de cada item traz o nome real do veículo.
-    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+India&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"], "indian_only": True},
-    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+(Lula+OR+Mercosur+OR+trade+OR+BRICS)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"], "indian_only": True},
-    {"name": "Google News — BRICS", "url": "https://news.google.com/rss/search?q=BRICS+India&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brics"], "indian_only": True},
+    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+-football+-soccer+-match+-cricket&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"], "allow_intl": True},
+    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+(Lula+OR+Mercosur+OR+Petrobras+OR+Embraer+OR+ethanol+OR+trade+OR+Amazon)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"], "allow_intl": True},
+    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brasil+India&hl=pt-BR&gl=IN&ceid=IN:pt-419", "themes": ["brasil"], "allow_intl": True},
+    {"name": "Google News — BRICS", "url": "https://news.google.com/rss/search?q=BRICS&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brics"], "allow_intl": True},
 
     # The Hindu
     {"name": "The Hindu — Nacional", "url": "https://www.thehindu.com/news/national/feeder/default.rss", "themes": []},
@@ -227,6 +228,21 @@ PRIORITY_OUTLETS = [
     "economic times", "the hindu", "businessline", "mint", "livemint",
     "hindustan times", "times of india",
 ]
+
+# Grandes agências e imprensa internacional — aceitas (sobretudo em Brasil/BRICS),
+# marcadas como internacionais e exibidas depois da imprensa indiana.
+INTERNATIONAL_OUTLETS = [
+    "reuters", "associated press", "ap news", "afp", "agence france presse",
+    "bloomberg", "efe", "financial times", "the guardian", "guardian",
+    "bbc", "cnn", "al jazeera", "mercopress", "nikkei", "wall street journal",
+    "the new york times", "new york times", "washington post", "anadolu",
+    "xinhua", "tass", "deutsche welle", "dw news", "the economist", "politico",
+    "south china morning post", "rfi", "sputnik", "cnbc", "forbes",
+]
+
+
+def is_international(source: str) -> bool:
+    return matches_outlet(source, INTERNATIONAL_OUTLETS)
 
 
 def matches_outlet(source: str, tokens: list[str]) -> bool:
@@ -488,6 +504,11 @@ TEMPLATE = r"""<!DOCTYPE html>
   .card .meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
   .source { font-weight: 700; color: var(--ink); }
   .source.pri::before { content: "★ "; color: #f5b301; }
+  .intl-tag { font-size: 10.5px; font-weight: 800; letter-spacing: .3px;
+    padding: 2px 7px; border-radius: 999px; color: #fff; background: #5b6472;
+    text-transform: uppercase; }
+  .card.is-intl { border-style: dashed; }
+  .card.is-intl .bar { background: repeating-linear-gradient(45deg, #8a93a3 0 8px, #b6bdc9 8px 16px); }
   .card h3 { margin: 0; font-size: 16px; line-height: 1.35; font-weight: 700; }
   .card h3 a { text-decoration: none; }
   .card h3 a:hover { text-decoration: underline; }
@@ -537,6 +558,14 @@ TEMPLATE = r"""<!DOCTYPE html>
       <input id="q" type="search" placeholder="Buscar por palavra-chave, assunto…" autocomplete="off">
     </label>
     <label class="srcpick">
+      <span aria-hidden="true">🌍</span>
+      <select id="origin">
+        <option value="all">Todas as origens</option>
+        <option value="in">🇮🇳 Imprensa indiana</option>
+        <option value="intl">🌐 Agências internacionais</option>
+      </select>
+    </label>
+    <label class="srcpick">
       <span aria-hidden="true">📰</span>
       <select id="src"><option value="all">Todos os jornais</option></select>
     </label>
@@ -564,12 +593,15 @@ TEMPLATE = r"""<!DOCTYPE html>
   const articles = DATA.articles;
   let activeTheme = 'all';
   let activeSource = 'all';
+  let activeOrigin = 'all';
   let query = '';
 
   const grid = document.getElementById('grid');
   const empty = document.getElementById('empty');
   const chipsEl = document.getElementById('chips');
   const srcEl = document.getElementById('src');
+  const originEl = document.getElementById('origin');
+  originEl.addEventListener('change', e => { activeOrigin = e.target.value; render(); });
 
   // Estatísticas do cabeçalho
   document.getElementById('stat-total').textContent = articles.length;
@@ -636,10 +668,12 @@ TEMPLATE = r"""<!DOCTYPE html>
     const badges = a.themes.map(t =>
       '<span class="badge" style="--bc:' + THEMES[t].color + '">' + THEMES[t].icon + ' ' + esc(THEMES[t].label) + '</span>'
     ).join('');
-    return '<article class="card t-' + primary + '">' +
+    const intl = a.origin === 'intl';
+    return '<article class="card t-' + primary + (intl ? ' is-intl' : '') + '">' +
       '<div class="bar"></div>' +
       '<div class="body">' +
         '<div class="meta"><span class="source' + (a.priority ? ' pri' : '') + '">' + esc(a.source) + '</span>' +
+          (intl ? '<span class="intl-tag">🌐 Internacional</span>' : '') +
           (a.time_ago ? '<span>•</span><span>' + esc(a.time_ago) + '</span>' : '') + '</div>' +
         '<h3><a href="' + esc(a.link) + '" target="_blank" rel="noopener">' + esc(a.title) + '</a></h3>' +
         (a.summary ? '<p class="sum">' + esc(a.summary) + '</p>' : '') +
@@ -653,11 +687,12 @@ TEMPLATE = r"""<!DOCTYPE html>
     const list = articles.filter(a => {
       const okTheme = activeTheme === 'all' || a.themes.includes(activeTheme);
       const okSource = activeSource === 'all' || a.source === activeSource;
+      const okOrigin = activeOrigin === 'all' || a.origin === activeOrigin;
       const okQuery = !q ||
         a.title.toLowerCase().includes(q) ||
         (a.summary || '').toLowerCase().includes(q) ||
         a.source.toLowerCase().includes(q);
-      return okTheme && okSource && okQuery;
+      return okTheme && okSource && okOrigin && okQuery;
     });
     grid.innerHTML = list.map(cardHTML).join('');
     empty.hidden = list.length !== 0;
@@ -706,7 +741,7 @@ def main() -> int:
     for feed in feeds:
         name, url = feed["name"], feed["url"]
         hint = feed.get("themes", [])
-        indian_only = feed.get("indian_only", False)
+        allow_intl = feed.get("allow_intl", False)
         outlet_default = name.split(" — ")[0]  # ex.: "The Hindu", "Google News"
         print(f"- {name}")
         raw = fetch(url)
@@ -728,9 +763,13 @@ def main() -> int:
             # Nome do veículo: usa o <source> (Google News) quando houver,
             # senão o nome-base do feed.
             outlet = item.get("outlet") or outlet_default
-            # Buscas agregadas só aceitam fontes da imprensa indiana.
-            if indian_only and not is_indian(outlet):
-                continue
+            indian = is_indian(outlet)
+            intl = is_international(outlet) and not indian
+            # Buscas agregadas só aceitam imprensa indiana ou, quando o feed
+            # permite (allow_intl), grandes agências internacionais.
+            if item.get("outlet"):  # item de busca agregada (Google News)
+                if not indian and not (allow_intl and intl):
+                    continue
 
             themes = classify(item, hint)
             if not themes:
@@ -753,12 +792,19 @@ def main() -> int:
                 "published": item["published"].isoformat() if item["published"] else None,
                 "themes": themes,
                 "priority": is_priority(outlet),
+                "origin": "intl" if intl else "in",
             })
 
-    # Ordena por data (mais recente primeiro) e depois eleva os jornais
-    # de grande circulação ao topo, preservando a ordem por data em cada grupo.
+    # Ordena por data (mais recente primeiro) e depois agrupa em camadas:
+    # 0) imprensa indiana de grande circulação, 1) demais indianas,
+    # 2) imprensa internacional — preservando a ordem por data em cada camada.
+    def tier(a: dict) -> int:
+        if a["origin"] == "intl":
+            return 2
+        return 0 if a["priority"] else 1
+
     articles.sort(key=lambda a: a["published"] or "", reverse=True)
-    articles.sort(key=lambda a: 0 if a["priority"] else 1)
+    articles.sort(key=tier)
 
     # Rótulo de atualização em horário de Brasília (UTC-3)
     brt = now.astimezone(timezone(timedelta(hours=-3)))
