@@ -840,10 +840,10 @@ TEMPLATE = r"""<!DOCTYPE html>
       viewTitle.innerHTML = '✨ Destaques do dia <span class="sec-tag">' + tag + '</span>';
       viewTitle.hidden = false;
     } else {
-      // Temas cumulativos: artigo entra se pertence a QUALQUER tema selecionado
-      // (ou todos, se nenhum selecionado). Combina com origem/jornal/busca.
+      // Temas cumulativos (E/interseção): artigo só entra se tiver TODOS os
+      // temas selecionados. Combina com origem/jornal/busca.
       list = articles.filter(a =>
-        (activeThemes.size === 0 || a.themes.some(t => activeThemes.has(t))) && matchFilters(a));
+        [...activeThemes].every(t => a.themes.includes(t)) && matchFilters(a));
       // matérias destacadas aparecem em primeiro lugar (com marquinha roxa)
       list.sort((x, y) => (hlLinks.has(y.link) ? 1 : 0) - (hlLinks.has(x.link) ? 1 : 0));
       viewTitle.hidden = true;
