@@ -759,7 +759,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 
   function cardHTML(a) {
     const primary = a.themes[0] || 'all';
-    const badges = a.themes.map(t =>
+    const badges = a.themes.slice(0, 3).map(t =>
       '<span class="badge" style="--bc:' + THEMES[t].color + '">' + THEMES[t].icon + ' ' + esc(THEMES[t].label) + '</span>'
     ).join('');
     const intl = a.origin === 'intl';
