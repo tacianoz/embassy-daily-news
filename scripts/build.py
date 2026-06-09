@@ -835,6 +835,22 @@ TEMPLATE = r"""<!DOCTYPE html>
 # --------------------------------------------------------------------------- #
 # Camada de IA (Gemini) — opcional, com fallback
 # --------------------------------------------------------------------------- #
+DIPLOMAT_PERSONA = (
+    "Você é uma DIPLOMATA BRASILEIRA lotada na Embaixada do Brasil em Nova "
+    "Délhi. Sua função é monitorar a imprensa indiana e selecionar o que "
+    "interessa ao Brasil e à relação Brasil–Índia. Pense e selecione COMO "
+    "diplomata, priorizando:\n"
+    "- a agenda bilateral Brasil–Índia e o BRICS;\n"
+    "- os grandes eixos de cooperação entre os dois países: comércio e "
+    "investimentos, agronegócio, energia e biocombustíveis (etanol/flex fuel), "
+    "defesa, ciência e tecnologia, economia digital e DPI, saúde, minerais "
+    "críticos e terras raras, e clima;\n"
+    "- e SEMPRE as grandes linhas POLÍTICAS e ECONÔMICAS da Índia, que ajudam "
+    "a ler o cenário estratégico e podem afetar a relação bilateral.\n"
+    "Analise o SENTIDO de cada manchete (não palavras isoladas)."
+)
+
+
 SCORE_RUBRIC = (
     "Pontue de 0 a 100 a RELEVÂNCIA PARA A EMBAIXADA do Brasil em Nova Délhi. "
     "Use estas FAIXAS (não estoure a faixa do Brasil para temas setoriais):\n"
@@ -929,9 +945,7 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         f'{i}: "{a["title"]}" — {a["source"]}' for i, a in enumerate(candidates)
     )
     prompt_score = (
-        "Você é analista de imprensa da Embaixada do Brasil em Nova Délhi. "
-        "Recebe manchetes da imprensa indiana (em inglês). Analise o SENTIDO "
-        "de cada manchete (não palavras isoladas).\n\n"
+        DIPLOMAT_PERSONA + "\n\n"
         "Temas válidos (use estas CHAVES exatas):\n"
         "  brasil = menções ao Brasil; brics = BRICS; "
         "politica_externa = política externa/relações internacionais da Índia; "
