@@ -504,6 +504,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 
   main { padding: 22px 0 60px; }
   .sec-title { font-size: 17px; font-weight: 800; margin: 8px 0 16px; display: flex; align-items: center; gap: 10px; }
+  .sec-title[hidden] { display: none; }
   .sec-tag { font-size: 11px; font-weight: 700; color: #fff; background: #6c5ce7;
     padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: .3px; }
   .ai-mark { font-size: 10.5px; font-weight: 700; color: #6c5ce7; }
