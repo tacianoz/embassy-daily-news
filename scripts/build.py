@@ -1078,17 +1078,15 @@ def main() -> int:
 
     now = datetime.now(timezone.utc)
 
-    # Janela de notícias: apenas HOJE e ONTEM (calendário de Nova Délhi, IST).
-    # MAX_AGE_DAYS continua disponível só para testes locais (janela rolante).
+    # Janela de notícias: últimas 24 horas (janela rolante a partir do build).
+    # MAX_AGE_DAYS continua disponível só para testes locais (janela maior).
     IST = timezone(timedelta(hours=5, minutes=30))
     max_age_env = os.environ.get("MAX_AGE_DAYS")
     if max_age_env:
         cutoff = now - timedelta(days=int(max_age_env))
         require_date = False
     else:
-        today_ist = now.astimezone(IST).date()
-        yesterday = today_ist - timedelta(days=1)
-        cutoff = datetime(yesterday.year, yesterday.month, yesterday.day, tzinfo=IST)
+        cutoff = now - timedelta(hours=24)
         require_date = True
 
     seen_links: set[str] = set()
@@ -1123,7 +1121,7 @@ def main() -> int:
             title_key = normalize(title).strip()
             if link_key in seen_links or (title_key and title_key in seen_titles):
                 continue
-            # filtro por data: só hoje e ontem
+            # filtro por data: só últimas 24 horas
             if item["published"] is None:
                 if require_date:
                     continue
@@ -1229,7 +1227,7 @@ def main() -> int:
     _bio_kw = ("ethanol", "biofuel", "flex fuel", "biogas", "biodiesel",
                "e10", "e20", "e27", "e85", "e100", "bioenergy")
     bio = [a for a in articles if any(" " + k + " " in normalize(a["title"] + " " + a["summary"]) for k in _bio_kw)]
-    print(f"  [diag] biocombustível no período (hoje/ontem): {len(bio)}")
+    print(f"  [diag] biocombustível no período (últimas 24h): {len(bio)}")
     for a in bio[:6]:
         print(f"         score={a.get('ai_score', '-')} | {a['source']} | {a['title'][:64]}")
     en = [a for a in articles if "energia" in a["themes"]]
@@ -1244,7 +1242,7 @@ def main() -> int:
         "meta": {
             "generated_utc": now.isoformat(),
             "generated_label": generated_label,
-            "window": "hoje e ontem",
+            "window": "últimas 24 horas",
             "feeds": sorted(ok_sources, key=str.lower),
             "ai_curated": ai_curated,
         },

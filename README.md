@@ -83,8 +83,8 @@ com o ranking heurístico.
 - **Fontes**: edite a lista `FEEDS` em `scripts/build.py`.
 - **Palavras-chave dos temas**: edite o dicionário `THEMES` no mesmo arquivo.
 - **Horário**: ajuste o `cron` em `.github/workflows/daily.yml`.
-- **Janela de notícias**: por padrão mostra apenas **hoje e ontem** (calendário
-  de Nova Délhi / IST). `MAX_AGE_DAYS` força uma janela rolante (uso em testes).
+- **Janela de notícias**: por padrão mostra apenas as **últimas 24 horas**
+  (janela rolante). `MAX_AGE_DAYS` força uma janela maior (uso em testes).
 - **Logo**: recriada em SVG no cabeçalho de `scripts/build.py`. Para usar o PNG
   oficial, substitua o bloco `<svg class="logo-svg">` por `<img src="logo.png">`
   e faça o script copiar o arquivo para `OUTPUT_DIR`.
