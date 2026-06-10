@@ -39,17 +39,15 @@ FEEDS = [
     # Buscas dedicadas (Google News RSS) — varrem toda a imprensa indiana
     # procurando menções a Brasil e BRICS, que raramente aparecem nos feeds
     # de seção. O <source> de cada item traz o nome real do veículo.
-    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+-football+-soccer+-match+-cricket&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"], "allow_intl": True},
-    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+(Lula+OR+Mercosur+OR+Petrobras+OR+Embraer+OR+ethanol+OR+trade+OR+Amazon)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"], "allow_intl": True},
-    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brasil+India&hl=pt-BR&gl=IN&ceid=IN:pt-419", "themes": ["brasil"], "allow_intl": True},
-    {"name": "Google News — BRICS", "url": "https://news.google.com/rss/search?q=BRICS&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brics"], "allow_intl": True},
-    # Cobertura INDIANA de Brasil e do entorno latino-americano (sem allow_intl
-    # => só veículos indianos). Enche a seção Brasil com material indiano.
+    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+-football+-soccer+-match+-cricket&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"]},
+    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+(Lula+OR+Mercosur+OR+Petrobras+OR+Embraer+OR+ethanol+OR+trade+OR+Amazon)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"]},
+    {"name": "Google News — BRICS", "url": "https://news.google.com/rss/search?q=BRICS&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brics"]},
+    # Cobertura indiana do Brasil e do entorno latino-americano.
     {"name": "Google News — Brasil/América Latina", "url": "https://news.google.com/rss/search?q=India+(Brazil+OR+%22Latin+America%22+OR+Mercosur+OR+%22South+America%22+OR+CELAC)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"]},
 
     # Buscas dedicadas por tema (Google News) — garantem recall de assuntos
     # que os feeds de seção não cobrem (ex.: biocombustíveis). Só imprensa
-    # indiana (sem allow_intl). O tema já vem carimbado via "themes".
+    # indiana. O tema já vem carimbado via "themes".
     {"name": "Google News — Energia", "url": "https://news.google.com/rss/search?q=India+(ethanol+OR+biofuel+OR+%22flex+fuel%22+OR+biogas+OR+biodiesel+OR+bioenergy+OR+%22ethanol+blending%22+OR+E20+OR+E85+OR+E100)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["energia"], "scope_india": True},
     {"name": "Google News — Energia", "url": "https://news.google.com/rss/search?q=India+(%22renewable+energy%22+OR+%22green+hydrogen%22+OR+%22solar+power%22+OR+%22wind+energy%22+OR+%22nuclear+power%22+OR+%22clean+energy%22+OR+%22energy+transition%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["energia"], "scope_india": True},
     {"name": "Google News — C&T", "url": "https://news.google.com/rss/search?q=India+(ISRO+OR+semiconductor+OR+%22artificial+intelligence%22+OR+%22space+mission%22+OR+startup+OR+innovation+OR+DRDO)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["cti"], "scope_india": True},
@@ -281,22 +279,6 @@ PRIORITY_OUTLETS = [
     "economic times", "the hindu", "businessline", "mint", "livemint",
     "hindustan times", "times of india",
 ]
-
-# Grandes agências e imprensa internacional — aceitas (sobretudo em Brasil/BRICS),
-# marcadas como internacionais e exibidas depois da imprensa indiana.
-INTERNATIONAL_OUTLETS = [
-    "reuters", "associated press", "ap news", "afp", "agence france presse",
-    "bloomberg", "efe", "financial times", "the guardian", "guardian",
-    "bbc", "cnn", "al jazeera", "mercopress", "nikkei", "wall street journal",
-    "the new york times", "new york times", "washington post", "anadolu",
-    "xinhua", "tass", "deutsche welle", "dw news", "the economist", "politico",
-    "south china morning post", "rfi", "sputnik", "cnbc", "forbes",
-]
-
-
-def is_international(source: str) -> bool:
-    return matches_outlet(source, INTERNATIONAL_OUTLETS)
-
 
 def matches_outlet(source: str, tokens: list[str]) -> bool:
     blob = normalize(source)
@@ -590,11 +572,6 @@ TEMPLATE = r"""<!DOCTYPE html>
   .card .meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
   .source { font-weight: 700; color: var(--ink); }
   .source.pri::before { content: "★ "; color: #f5b301; }
-  .intl-tag { font-size: 10.5px; font-weight: 800; letter-spacing: .3px;
-    padding: 2px 7px; border-radius: 999px; color: #fff; background: #5b6472;
-    text-transform: uppercase; }
-  .card.is-intl { border-style: dashed; }
-  .card.is-intl .bar { background: repeating-linear-gradient(45deg, #8a93a3 0 8px, #b6bdc9 8px 16px); }
   .card.is-hl { border-left: 3px solid #c2185b; }
   .card h3 { margin: 0; font-size: 16px; line-height: 1.35; font-weight: 700; }
   .card h3 a { text-decoration: none; }
@@ -622,7 +599,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     .controls { padding: 8px 0; }
     .controls-inner { gap: 8px; }
     .search { flex: 1 1 100%; order: 1; padding: 8px 14px; }
-    .srcpick { flex: 1 1 calc(50% - 5px); order: 2; padding: 7px 12px; }
+    .srcpick { flex: 1 1 100%; order: 2; padding: 7px 12px; }
     .srcpick select { max-width: 100%; width: 100%; }
     /* chips numa única linha, com rolagem horizontal (não quebram a tela) */
     .chips { order: 3; width: 100%; flex-wrap: nowrap; overflow-x: auto;
@@ -666,14 +643,6 @@ TEMPLATE = r"""<!DOCTYPE html>
       <input id="q" type="search" placeholder="Buscar por palavra-chave, assunto…" autocomplete="off">
     </label>
     <label class="srcpick">
-      <span aria-hidden="true">🌍</span>
-      <select id="origin">
-        <option value="in" selected>Imprensa indiana</option>
-        <option value="all">Todas as origens</option>
-        <option value="intl">Agências internacionais</option>
-      </select>
-    </label>
-    <label class="srcpick">
       <span aria-hidden="true">📰</span>
       <select id="src"><option value="all">Todos os jornais</option></select>
     </label>
@@ -711,16 +680,12 @@ TEMPLATE = r"""<!DOCTYPE html>
   let inicio = HL.length > 0;            // página inicial = Destaques
   const activeThemes = new Set();        // temas selecionados (cumulativos)
   let activeSource = 'all';
-  let activeOrigin = 'in';               // padrão: só imprensa indiana
   let query = '';
 
   const grid = document.getElementById('grid');
   const empty = document.getElementById('empty');
   const chipsEl = document.getElementById('chips');
   const srcEl = document.getElementById('src');
-  const originEl = document.getElementById('origin');
-  originEl.value = activeOrigin;  // garante o padrão "Imprensa indiana"
-  originEl.addEventListener('change', e => { activeOrigin = e.target.value; render(); });
 
   // Estatísticas do cabeçalho
   document.getElementById('stat-total').textContent = articles.length;
@@ -803,15 +768,13 @@ TEMPLATE = r"""<!DOCTYPE html>
     const badges = a.themes.slice(0, 3).map(t =>
       '<span class="badge" style="--bc:' + THEMES[t].color + '">' + THEMES[t].icon + ' ' + esc(THEMES[t].label) + '</span>'
     ).join('');
-    const intl = a.origin === 'intl';
     const hl = hlLinks.has(a.link) && !inicio;  // marquinha roxa nos filtros
-    return '<article class="card t-' + primary + (intl ? ' is-intl' : '') + (hl ? ' is-hl' : '') + '">' +
+    return '<article class="card t-' + primary + (hl ? ' is-hl' : '') + '">' +
       '<div class="bar"></div>' +
       '<div class="body">' +
         '<div class="meta">' +
           (hl ? '<span class="hl-mark" title="Destaque do dia">✦</span>' : '') +
           '<span class="source' + (a.priority ? ' pri' : '') + '">' + esc(a.source) + '</span>' +
-          (intl ? '<span class="intl-tag">🌐 Internacional</span>' : '') +
           (a.time_ago ? '<span>•</span><span>' + esc(a.time_ago) + '</span>' : '') + '</div>' +
         '<h3><a href="' + esc(a.link) + '" target="_blank" rel="noopener">' + esc(a.title) + '</a></h3>' +
         (function () {
@@ -830,12 +793,11 @@ TEMPLATE = r"""<!DOCTYPE html>
   function matchFilters(a) {
     const q = query.trim().toLowerCase();
     const okSource = activeSource === 'all' || a.source === activeSource;
-    const okOrigin = activeOrigin === 'all' || a.origin === activeOrigin;
     const okQuery = !q ||
       a.title.toLowerCase().includes(q) ||
       (a.summary || '').toLowerCase().includes(q) ||
       a.source.toLowerCase().includes(q);
-    return okSource && okOrigin && okQuery;
+    return okSource && okQuery;
   }
 
   // Contadores dos chips acompanham os filtros ativos (origem/jornal/busca):
@@ -1145,7 +1107,6 @@ def main() -> int:
     for feed in feeds:
         name, url = feed["name"], feed["url"]
         hint = feed.get("themes", [])
-        allow_intl = feed.get("allow_intl", False)
         outlet_default = name.split(" — ")[0]  # ex.: "The Hindu", "Google News"
         print(f"- {name}")
         raw = fetch(url)
@@ -1175,14 +1136,11 @@ def main() -> int:
             elif item["published"] < cutoff:
                 continue
 
-            indian = is_indian(outlet)
-            known_intl = is_international(outlet)
-            intl = known_intl and not indian
-            # Buscas agregadas (Google News): SÓ veículos reconhecidos —
-            # imprensa indiana reputada (lista INDIAN_OUTLETS) ou, quando o
-            # feed permite, grandes agências internacionais. Sites aleatórios/
-            # desconhecidos (inclusive brasileiros) são descartados.
-            if item.get("outlet") and not indian and not (allow_intl and intl):
+            # Buscas agregadas (Google News): SÓ imprensa indiana reputada
+            # (lista INDIAN_OUTLETS). Agências internacionais e sites
+            # aleatórios/desconhecidos são descartados — este é um monitor
+            # da imprensa indiana.
+            if item.get("outlet") and not is_indian(outlet):
                 continue
 
             themes = classify(item, hint)
@@ -1197,7 +1155,6 @@ def main() -> int:
                 "published": item["published"].isoformat() if item["published"] else None,
                 "themes": themes,
                 "priority": is_priority(outlet),
-                "origin": "intl" if intl else "in",
             }
 
             # Quase-duplicata (mesma notícia, veículos/manchetes diferentes):
@@ -1232,7 +1189,6 @@ def main() -> int:
             s += 1.5  # bônus por cruzar temas
         if a["priority"]:
             s += 3
-        s += 2 if a["origin"] == "in" else -1
         if a["published"]:
             age_h = (now - datetime.fromisoformat(a["published"])).total_seconds() / 3600
             s += 3 if age_h <= 24 else (1 if age_h <= 48 else 0)
