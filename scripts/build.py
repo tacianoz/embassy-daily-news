@@ -111,7 +111,7 @@ FEEDS = [
 # --------------------------------------------------------------------------- #
 THEMES = {
     "brasil": {
-        "label": "Brasil",
+        "label": "Brasil e América Latina",
         "desc": "Menções ao Brasil e à América Latina",
         "color": "#009c3b",
         "icon": "🇧🇷",
@@ -838,7 +838,23 @@ TEMPLATE = r"""<!DOCTYPE html>
     return okSource && okOrigin && okQuery;
   }
 
+  // Contadores dos chips acompanham os filtros ativos (origem/jornal/busca):
+  // mostram quantas matérias cada tema tem NA VISÃO atual, não no total bruto.
+  function updateCounts() {
+    const base = articles.filter(matchFilters);
+    const c = { all: base.length };
+    for (const k in THEMES) c[k] = 0;
+    for (const a of base) for (const t of a.themes) c[t] = (c[t] || 0) + 1;
+    document.querySelectorAll('.chip').forEach(ch => {
+      const k = ch.dataset.key;
+      const span = ch.querySelector('.count');
+      if (!span) return;
+      span.textContent = k === 'inicio' ? HL.length : (k === 'all' ? c.all : (c[k] || 0));
+    });
+  }
+
   function render() {
+    updateCounts();
     let list;
     if (inicio) {
       // Página inicial: somente os Destaques do dia (sem misturar o resto)

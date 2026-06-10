@@ -9,7 +9,7 @@ interativo com manchetes, resumos e link de acesso.
 
 | Tema | Descrição |
 |------|-----------|
-| 🇧🇷 **Brasil** | Menções ao Brasil |
+| 🇧🇷 **Brasil e América Latina** | Menções ao Brasil e à América Latina |
 | 🤝 **BRICS** | Menções ao BRICS |
 | 🌐 **Política internacional** | Diplomacia e relações internacionais |
 | 🏛️ **Política interna** | Política doméstica e governo |
