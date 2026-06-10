@@ -26,15 +26,20 @@ concurrency:
   group: "pages"
   cancel-in-progress: false
 
+# Node 24: a partir de 16/jun/2026 o GitHub força as actions JS a rodar em
+# Node 24; opta agora para validar antes do prazo.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configurar Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 

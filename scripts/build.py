@@ -21,6 +21,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.request
 import urllib.error
 from datetime import datetime, timedelta, timezone
@@ -918,8 +919,10 @@ SCORE_RUBRIC = (
 )
 
 
-def _gemini_call(prompt: str, api_key: str, model: str, max_tokens: int):
-    """Faz uma chamada ao Gemini e devolve o JSON da resposta (ou None)."""
+def _gemini_call(prompt: str, api_key: str, model: str, max_tokens: int,
+                 retries: int = 2):
+    """Chama o Gemini e devolve o JSON da resposta. Tenta de novo com backoff
+    em falhas transitórias (429/5xx/rede/JSON truncado); esgotado, relança."""
     body = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
@@ -931,14 +934,24 @@ def _gemini_call(prompt: str, api_key: str, model: str, max_tokens: int):
         },
     }).encode("utf-8")
     url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
-           f"{model}:generateContent?key={api_key}")
-    req = urllib.request.Request(
-        url, data=body,
-        headers={"Content-Type": "application/json", "User-Agent": USER_AGENT},
-    )
-    with urllib.request.urlopen(req, timeout=90) as resp:
-        raw = json.loads(resp.read())
-    return json.loads(raw["candidates"][0]["content"]["parts"][0]["text"])
+           f"{model}:generateContent")
+    last_err: Exception | None = None
+    for attempt in range(retries + 1):
+        try:
+            req = urllib.request.Request(
+                url, data=body,
+                headers={"Content-Type": "application/json",
+                         "x-goog-api-key": api_key,
+                         "User-Agent": USER_AGENT},
+            )
+            with urllib.request.urlopen(req, timeout=90) as resp:
+                raw = json.loads(resp.read())
+            return json.loads(raw["candidates"][0]["content"]["parts"][0]["text"])
+        except Exception as exc:  # noqa: BLE001
+            last_err = exc
+            if attempt < retries:
+                time.sleep(3 * (attempt + 1))
+    raise last_err
 
 
 def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
@@ -978,10 +991,9 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
     candidates = candidates[:240]
 
     # ---- Chamada 1: NOTA + TEMAS (a IA entende o texto e recategoriza) ----
-    listing = "\n".join(
-        f'{i}: "{a["title"]}" — {a["source"]}' for i, a in enumerate(candidates)
-    )
-    prompt_score = (
+    # Em LOTES: respostas menores não truncam, e a falha de um lote não
+    # derruba a avaliação dos demais.
+    prompt_header = (
         DIPLOMAT_PERSONA + "\n\n"
         "Temas válidos (use estas CHAVES exatas):\n"
         "  brasil = menções ao Brasil; brics = BRICS; "
@@ -1004,13 +1016,24 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         "- \"score\": " + SCORE_RUBRIC + "\n\n"
         'Responda APENAS em JSON, sem texto fora dele: '
         '{"itens": {"<i>": {"temas": ["..."], "score": <0-100>}}}.\n\n'
-        f"Itens:\n{listing}"
     )
-    try:
-        result = _gemini_call(prompt_score, api_key, model, 16384)
-        itens = result.get("itens", {}) or {}
-    except Exception as exc:  # noqa: BLE001
-        print(f"  ! Gemini indisponível ({str(exc)[:80]}) — usando ranking heurístico")
+    BATCH = 80
+    itens: dict = {}
+    for start in range(0, len(candidates), BATCH):
+        batch = candidates[start:start + BATCH]
+        listing = "\n".join(
+            f'{i}: "{a["title"]}" — {a["source"]}'
+            for i, a in enumerate(batch, start=start)
+        )
+        try:
+            result = _gemini_call(prompt_header + f"Itens:\n{listing}",
+                                  api_key, model, 32768)
+            itens.update(result.get("itens", {}) or {})
+        except Exception as exc:  # noqa: BLE001 — lote perdido, segue o jogo
+            print(f"  ! Gemini (lote {start}-{start + len(batch) - 1}) falhou "
+                  f"({str(exc)[:60]})")
+    if not itens:
+        print("  ! Gemini indisponível — usando ranking heurístico")
         return []
 
     n_scored = 0
@@ -1237,6 +1260,16 @@ def main() -> int:
 
     # Rótulo de atualização no horário de Nova Délhi (IST, UTC+5:30)
     generated_label = now.astimezone(IST).strftime("%d/%m/%Y às %H:%M (Nova Délhi)")
+
+    # Guarda de edição vazia: se a coleta falhou em massa (rede, feeds fora do
+    # ar), aborta SEM publicar — o GitHub Pages mantém a edição anterior.
+    # Em testes locais (FEEDS_OVERRIDE) o piso é 0, salvo MIN_ARTICLES.
+    default_min = "0" if override else "30"
+    min_articles = int(os.environ.get("MIN_ARTICLES", default_min))
+    if len(articles) < min_articles:
+        print(f"\n✖ Apenas {len(articles)} matérias (mínimo {min_articles}) — "
+              "abortando para preservar a edição anterior", file=sys.stderr)
+        return 1
 
     payload = {
         "meta": {

@@ -103,5 +103,8 @@ com o ranking heurístico.
 | Variável | Padrão | Descrição |
 |----------|--------|-----------|
 | `OUTPUT_DIR` | `public` | Diretório de saída |
-| `MAX_AGE_DAYS` | `3` | Idade máxima das matérias (dias) |
+| `MAX_AGE_DAYS` | — | Janela rolante em dias (testes); sem ela, valem as últimas 24 horas |
 | `FEEDS_OVERRIDE` | — | JSON de feeds para teste local |
+| `MIN_ARTICLES` | `30` (`0` em teste) | Piso de matérias: abaixo disso o build aborta sem publicar, preservando a edição anterior |
+| `GEMINI_API_KEY` | — | Ativa a camada de IA (ranqueamento/destaques/resumos) |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Modelo da camada de IA |
