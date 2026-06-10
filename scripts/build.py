@@ -43,6 +43,9 @@ FEEDS = [
     {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+(Lula+OR+Mercosur+OR+Petrobras+OR+Embraer+OR+ethanol+OR+trade+OR+Amazon)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"], "allow_intl": True},
     {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brasil+India&hl=pt-BR&gl=IN&ceid=IN:pt-419", "themes": ["brasil"], "allow_intl": True},
     {"name": "Google News — BRICS", "url": "https://news.google.com/rss/search?q=BRICS&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brics"], "allow_intl": True},
+    # Cobertura INDIANA de Brasil e do entorno latino-americano (sem allow_intl
+    # => só veículos indianos). Enche a seção Brasil com material indiano.
+    {"name": "Google News — Brasil/América Latina", "url": "https://news.google.com/rss/search?q=India+(Brazil+OR+%22Latin+America%22+OR+Mercosur+OR+%22South+America%22+OR+CELAC)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"]},
 
     # Buscas dedicadas por tema (Google News) — garantem recall de assuntos
     # que os feeds de seção não cobrem (ex.: biocombustíveis). Só imprensa
@@ -109,13 +112,15 @@ FEEDS = [
 THEMES = {
     "brasil": {
         "label": "Brasil",
-        "desc": "Menções ao Brasil",
+        "desc": "Menções ao Brasil e à América Latina",
         "color": "#009c3b",
         "icon": "🇧🇷",
         "keywords": [
             "brazil", "brazilian", "brasil", "brasilia", "lula", "mercosur",
             "mercosul", "itamaraty", "sao paulo", "rio de janeiro", "petrobras",
             "embraer", "bolsonaro", "planalto", "amazon basin",
+            # interesse muito próximo do Brasil
+            "latin america", "latin american", "south america", "celac",
         ],
     },
     "brics": {
@@ -663,8 +668,8 @@ TEMPLATE = r"""<!DOCTYPE html>
     <label class="srcpick">
       <span aria-hidden="true">🌍</span>
       <select id="origin">
+        <option value="in" selected>Imprensa indiana</option>
         <option value="all">Todas as origens</option>
-        <option value="in">Imprensa indiana</option>
         <option value="intl">Agências internacionais</option>
       </select>
     </label>
@@ -706,7 +711,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   let inicio = HL.length > 0;            // página inicial = Destaques
   const activeThemes = new Set();        // temas selecionados (cumulativos)
   let activeSource = 'all';
-  let activeOrigin = 'all';
+  let activeOrigin = 'in';               // padrão: só imprensa indiana
   let query = '';
 
   const grid = document.getElementById('grid');
@@ -714,6 +719,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   const chipsEl = document.getElementById('chips');
   const srcEl = document.getElementById('src');
   const originEl = document.getElementById('origin');
+  originEl.value = activeOrigin;  // garante o padrão "Imprensa indiana"
   originEl.addEventListener('change', e => { activeOrigin = e.target.value; render(); });
 
   // Estatísticas do cabeçalho
@@ -893,7 +899,8 @@ SCORE_RUBRIC = (
     "Pontue de 0 a 100 a RELEVÂNCIA PARA A EMBAIXADA do Brasil em Nova Délhi. "
     "Use estas FAIXAS (não estoure a faixa do Brasil para temas setoriais):\n"
     "   90-100: menções diretas ao Brasil e relações bilaterais Índia-Brasil.\n"
-    "   80-89: BRICS e cúpulas/foros com participação do Brasil.\n"
+    "   80-89: BRICS, cúpulas com participação do Brasil, e América Latina/"
+    "Mercosul/América do Sul (entorno próximo do Brasil).\n"
     "   65-79: política externa DA ÍNDIA (relações da Índia com outros países; "
     "Índia em foros internacionais) e comércio exterior indiano.\n"
     "   50-64: temas SETORIAIS prioritários — altos DENTRO do seu tema, mas "
@@ -996,7 +1003,8 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
     prompt_header = (
         DIPLOMAT_PERSONA + "\n\n"
         "Temas válidos (use estas CHAVES exatas):\n"
-        "  brasil = menções ao Brasil; brics = BRICS; "
+        "  brasil = menções ao Brasil OU a temas muito próximos do Brasil "
+        "(América Latina, Mercosul, América do Sul, CELAC); brics = BRICS; "
         "politica_externa = política externa/relações internacionais da Índia; "
         "politica_interna = política doméstica indiana; economia = economia/"
         "mercados/comércio; energia = petróleo, gás, eletricidade, renováveis, "
