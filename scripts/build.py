@@ -1002,6 +1002,8 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         "- \"score\": " + SCORE_RUBRIC + "\n\n"
         'Responda APENAS em JSON, sem texto fora dele: '
         '{"itens": {"<i>": {"temas": ["..."], "score": <0-100>}}}.\n\n'
+        'Cada item vem como `i: "título" — fonte :: resumo`. CONSIDERE também '
+        'o resumo (ex.: o Brasil pode ser citado só no resumo, não no título).\n\n'
     )
     BATCH = 80
     itens: dict = {}
@@ -1009,6 +1011,7 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         batch = candidates[start:start + BATCH]
         listing = "\n".join(
             f'{i}: "{a["title"]}" — {a["source"]}'
+            + (f' :: {a["summary"][:200]}' if a["summary"] else "")
             for i, a in enumerate(batch, start=start)
         )
         try:
