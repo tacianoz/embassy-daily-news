@@ -829,8 +829,14 @@ TEMPLATE = r"""<!DOCTYPE html>
       // temas selecionados. Combina com origem/jornal/busca.
       list = articles.filter(a =>
         [...activeThemes].every(t => a.themes.includes(t)) && matchFilters(a));
-      // matérias destacadas aparecem em primeiro lugar (com marquinha roxa)
+      // Ordem (mantendo a relevância como base, sort estável):
+      //  1º) matérias cujo TEMA PRINCIPAL (tag central) é o da seção;
+      //  2º) destaques; 3º) relevância (ordem já existente na lista).
       list.sort((x, y) => (hlLinks.has(y.link) ? 1 : 0) - (hlLinks.has(x.link) ? 1 : 0));
+      if (activeThemes.size) {
+        list.sort((x, y) =>
+          (activeThemes.has(y.themes[0]) ? 1 : 0) - (activeThemes.has(x.themes[0]) ? 1 : 0));
+      }
       viewTitle.hidden = true;
     }
     grid.innerHTML = list.map(cardHTML).join('');
