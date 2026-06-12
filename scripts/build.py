@@ -24,6 +24,7 @@ import sys
 import time
 import urllib.request
 import urllib.error
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from xml.etree import ElementTree as ET
@@ -104,6 +105,32 @@ FEEDS = [
     {"name": "The Wire", "url": "https://thewire.in/rss", "themes": []},
     {"name": "Scroll.in", "url": "https://scroll.in/feeds/all.rss", "themes": []},
     {"name": "Down To Earth — Meio Ambiente", "url": "https://www.downtoearth.org.in/rss/environment", "themes": ["clima"]},
+
+    # --- Publicações especializadas indianas (RSS direto) ---
+    # Defesa
+    {"name": "Livefist", "url": "https://www.livefistdefence.com/feed/", "themes": ["defesa"]},
+    {"name": "IDRW", "url": "https://idrw.org/feed/", "themes": ["defesa"]},
+    {"name": "Raksha Anirveda", "url": "https://raksha-anirveda.com/feed/", "themes": ["defesa"]},
+    {"name": "Indian Defence Review", "url": "https://www.indiandefencereview.com/feed/", "themes": ["defesa"]},
+    {"name": "Bharat Shakti", "url": "https://bharatshakti.in/feed/", "themes": ["defesa"]},
+    {"name": "The EurAsian Times", "url": "https://www.eurasiantimes.com/feed/", "themes": ["defesa", "politica_externa"]},
+    # Tecnologia / startups
+    {"name": "Inc42", "url": "https://inc42.com/feed/", "themes": ["cti", "economia"]},
+    {"name": "Entrackr", "url": "https://entrackr.com/feed/", "themes": ["cti", "economia"]},
+    {"name": "MediaNama", "url": "https://www.medianama.com/feed/", "themes": ["cti"]},
+    {"name": "Analytics India Magazine", "url": "https://analyticsindiamag.com/feed/", "themes": ["cti"]},
+    {"name": "YourStory", "url": "https://yourstory.com/feed", "themes": ["cti", "economia"]},
+    {"name": "ET Tech", "url": "https://tech.economictimes.indiatimes.com/rss/topstories", "themes": ["cti"]},
+    # Energia / mineração / agro
+    {"name": "Mercom India", "url": "https://www.mercomindia.com/feed/", "themes": ["energia"]},
+    {"name": "Saur Energy", "url": "https://www.saurenergy.com/feed/", "themes": ["energia"]},
+    {"name": "PV Magazine India", "url": "https://www.pv-magazine-india.com/feed/", "themes": ["energia"]},
+    {"name": "ChiniMandi", "url": "https://www.chinimandi.com/feed/", "themes": ["energia"]},
+    {"name": "ETEnergyWorld", "url": "https://energy.economictimes.indiatimes.com/rss/topstories", "themes": ["energia"]},
+    # Clima / meio ambiente
+    {"name": "Mongabay India", "url": "https://india.mongabay.com/feed/", "themes": ["clima"]},
+    # Economia
+    {"name": "Moneycontrol", "url": "https://www.moneycontrol.com/rss/latestnews.xml", "themes": ["economia"]},
 ]
 
 # --------------------------------------------------------------------------- #
@@ -342,7 +369,7 @@ def strip_html(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def fetch(url: str, timeout: int = 25) -> bytes | None:
+def fetch(url: str, timeout: int = 20) -> bytes | None:
     """Busca uma URL (ou lê um arquivo local, para testes)."""
     if not url.startswith(("http://", "https://")):
         try:
@@ -358,7 +385,13 @@ def fetch(url: str, timeout: int = 25) -> bytes | None:
             req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return resp.read()
-        except Exception as exc:  # noqa: BLE001 — toleramos qualquer falha de rede
+        except urllib.error.HTTPError as exc:
+            # 4xx (404/403/410): erro de cliente — não adianta repetir.
+            if 400 <= exc.code < 500:
+                print(f"  ! {exc.code} {url}", file=sys.stderr)
+                return None
+            last_err = exc
+        except Exception as exc:  # noqa: BLE001 — toleramos falhas de rede
             last_err = exc
     print(f"  ! falhou ({last_err}): {url}", file=sys.stderr)
     return None
@@ -1150,12 +1183,17 @@ def main() -> int:
     articles: list[dict] = []
     ok_sources: set[str] = set()
 
-    for feed in feeds:
-        name, url = feed["name"], feed["url"]
+    # Busca todos os feeds em paralelo (preservando a ordem da lista) — com
+    # ~50 feeds, em série ficaria lento; o ThreadPoolExecutor reduz para ~o
+    # tempo do feed mais lento.
+    with ThreadPoolExecutor(max_workers=12) as ex:
+        raws = list(ex.map(lambda f: fetch(f["url"]), feeds))
+
+    for feed, raw in zip(feeds, raws):
+        name = feed["name"]
         hint = feed.get("themes", [])
         outlet_default = name.split(" — ")[0]  # ex.: "The Hindu", "Google News"
         print(f"- {name}")
-        raw = fetch(url)
         if not raw:
             continue
         parsed = parse_feed(raw, name)
