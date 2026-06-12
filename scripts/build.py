@@ -150,7 +150,7 @@ THEMES = {
             "embraer", "petrobras", "weg", "gerdau", "jbs", "marfrig",
             "suzano", "braskem", "ambev", "itau", "bradesco", "nubank",
             "stefanini", "eletrobras", "banco do brasil", "bndes",
-            "taurus armas", "marcopolo",
+            "taurus armas", "marcopolo", "vale", "cbc",
             # interesse muito próximo do Brasil
             "latin america", "latin american", "south america", "celac",
         ],
@@ -361,6 +361,10 @@ BRAZIL_COMPANIES = [
     "embraer", "petrobras", "weg", "gerdau", "jbs", "marfrig", "suzano",
     "braskem", "ambev", "itau", "bradesco", "nubank", "stefanini",
     "eletrobras", "banco do brasil", "bndes", "taurus armas", "marcopolo",
+    # formas inequívocas de Vale e CBC (bare 'vale'/'cbc' são ambíguos:
+    # vale=vale do Caxemira, CBC=exame de sangue/emissora — ficam só como
+    # palavra-chave soft, confirmada pela IA)
+    "vale sa", "vale mining", "cbc global", "companhia brasileira de cartuchos",
 ]
 
 
