@@ -892,14 +892,17 @@ TEMPLATE = r"""<!DOCTYPE html>
       // temas selecionados. Combina com origem/jornal/busca.
       list = articles.filter(a =>
         [...activeThemes].every(t => a.themes.includes(t)) && matchFilters(a));
-      // Ordem (mantendo a relevância como base, sort estável):
-      //  1º) matérias cujo TEMA PRINCIPAL (tag central) é o da seção;
-      //  2º) destaques; 3º) relevância (ordem já existente na lista).
+      // Ordem (sort estável, base = relevância; o último sort tem prioridade):
+      //  1º) matérias com a tag BRASIL E AMÉRICA LATINA (sempre no topo);
+      //  2º) matérias cujo TEMA PRINCIPAL é o da seção;
+      //  3º) destaques; 4º) relevância (ordem já existente na lista).
       list.sort((x, y) => (hlLinks.has(y.link) ? 1 : 0) - (hlLinks.has(x.link) ? 1 : 0));
       if (activeThemes.size) {
         list.sort((x, y) =>
           (activeThemes.has(y.themes[0]) ? 1 : 0) - (activeThemes.has(x.themes[0]) ? 1 : 0));
       }
+      list.sort((x, y) =>
+        (y.themes.includes('brasil') ? 1 : 0) - (x.themes.includes('brasil') ? 1 : 0));
       viewTitle.hidden = true;
     }
     grid.innerHTML = list.map(cardHTML).join('');
