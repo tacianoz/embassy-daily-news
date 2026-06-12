@@ -299,6 +299,9 @@ INDIAN_OUTLETS = [
     # Defesa
     "livefist", "idrw", "indian defence", "indian defense", "stratpost",
     "force magazine", "indian defence review", "raksha anirveda",
+    "india strategic", "sp s aviation", "sp s naval forces", "sp guide",
+    "vayu aerospace", "defence and security alert", "defence monitor",
+    "idsa", "manohar parrikar", "bharat shakti", "the eurasian times",
 ]
 
 # Jornais de grande circulação — recebem prioridade na ordenação e destaque.
