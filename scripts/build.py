@@ -351,6 +351,54 @@ def is_indian(source: str) -> bool:
     return matches_outlet(source, INDIAN_OUTLETS)
 
 
+# Unifica variações do nome do mesmo veículo (ex.: "Economic Times" e "The
+# Economic Times") — para o filtro de jornais e a exibição nos cards.
+# Ordem importa: tokens mais específicos primeiro.
+CANONICAL_SOURCES = [
+    ("The Hindu BusinessLine", "businessline"),
+    ("The Economic Times", "economic times"),
+    ("The Times of India", "times of india"),
+    ("The Indian Express", "indian express"),
+    ("The New Indian Express", "new indian express"),
+    ("Hindustan Times", "hindustan times"),
+    ("The Hindu", "the hindu"),
+    ("NDTV Profit", "ndtv profit"),
+    ("NDTV", "ndtv"),
+    ("Mint", "livemint"),
+    ("Mint", "mint"),
+    ("Business Standard", "business standard"),
+    ("Business Today", "business today"),
+    ("The Wire", "the wire"),
+    ("Scroll.in", "scroll"),
+    ("Moneycontrol", "moneycontrol"),
+    ("ThePrint", "theprint"),
+    ("ThePrint", "the print"),
+    ("News18", "news18"),
+    ("India Today", "india today"),
+    ("Firstpost", "firstpost"),
+    ("Deccan Herald", "deccan herald"),
+    ("Financial Express", "financial express"),
+    ("Outlook", "outlook"),
+    ("The Tribune", "tribune"),
+    ("Press Trust of India", "press trust of india"),
+    ("Press Trust of India", "pti"),
+    ("ANI", "ani"),
+    ("The Quint", "the quint"),
+    ("The Federal", "the federal"),
+    ("Frontline", "frontline"),
+    ("Down To Earth", "down to earth"),
+    ("Mongabay India", "mongabay"),
+]
+
+
+def canonical_source(name: str) -> str:
+    blob = normalize(name)
+    for display, token in CANONICAL_SOURCES:
+        if (" " + token + " ") in blob:
+            return display
+    return name.strip()
+
+
 def is_priority(source: str) -> bool:
     return matches_outlet(source, PRIORITY_OUTLETS)
 
@@ -930,17 +978,20 @@ TEMPLATE = r"""<!DOCTYPE html>
       // temas selecionados. Combina com origem/jornal/busca.
       list = articles.filter(a =>
         [...activeThemes].every(t => a.themes.includes(t)) && matchFilters(a));
-      // Ordem (sort estável, base = relevância; o último sort tem prioridade):
-      //  1º) matérias com a tag BRASIL E AMÉRICA LATINA (sempre no topo);
-      //  2º) matérias cujo TEMA PRINCIPAL é o da seção;
-      //  3º) destaques; 4º) relevância (ordem já existente na lista).
+      // Ordem em cada seção (sort estável; base = relevância):
+      //  0) Brasil em 1º lugar E o tema da seção em 2º;
+      //  1) tema da seção em 1º lugar;
+      //  2) o resto. Destaque é desempate interno.
       list.sort((x, y) => (hlLinks.has(y.link) ? 1 : 0) - (hlLinks.has(x.link) ? 1 : 0));
       if (activeThemes.size) {
-        list.sort((x, y) =>
-          (activeThemes.has(y.themes[0]) ? 1 : 0) - (activeThemes.has(x.themes[0]) ? 1 : 0));
+        const srank = a =>
+          (a.themes[0] === 'brasil' && activeThemes.has(a.themes[1])) ? 0
+          : activeThemes.has(a.themes[0]) ? 1 : 2;
+        list.sort((x, y) => srank(x) - srank(y));
+      } else {
+        // "Todos": matérias com a tag Brasil primeiro
+        list.sort((x, y) => (y.themes.includes('brasil') ? 1 : 0) - (x.themes.includes('brasil') ? 1 : 0));
       }
-      list.sort((x, y) =>
-        (y.themes.includes('brasil') ? 1 : 0) - (x.themes.includes('brasil') ? 1 : 0));
       viewTitle.hidden = true;
     }
     grid.innerHTML = list.map(cardHTML).join('');
@@ -1249,7 +1300,7 @@ def main() -> int:
         for item in parsed:
             # Nome do veículo: usa o <source> (Google News) quando houver,
             # senão o nome-base do feed.
-            outlet = item.get("outlet") or outlet_default
+            outlet = canonical_source(item.get("outlet") or outlet_default)
 
             # Limpa o título ANTES de gerar a chave de dedupe: o Google News
             # acrescenta " - Veículo" ao fim, o que impediria a deduplicação
