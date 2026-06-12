@@ -367,6 +367,22 @@ BRAZIL_COMPANIES = [
 def mentions_brazil_company(text: str) -> bool:
     return matches_outlet(text, BRAZIL_COMPANIES)
 
+
+# Boletins/roundups recorrentes e tickers — ruído. Matérias com esses padrões
+# no título são DESCARTADAS (não entram na seleção).
+JUNK_TITLE = [
+    "market update", "market wrap", "market roundup", "market round up",
+    "closing bell", "opening bell", "share market live", "stock market live",
+    "sensex today", "nifty today", "gold rate today", "silver rate today",
+    "petrol and diesel price", "fuel price today", "price today",
+    "rate today", "horoscope", "rashifal", "daily briefing",
+]
+
+
+def is_junk_title(title: str) -> bool:
+    blob = normalize(title)
+    return any(p in blob for p in JUNK_TITLE)
+
 # --------------------------------------------------------------------------- #
 # Utilidades
 # --------------------------------------------------------------------------- #
@@ -1237,6 +1253,10 @@ def main() -> int:
             title = item["title"]
             if item.get("outlet") and title.endswith(" - " + item["outlet"]):
                 title = title[: -(len(item["outlet"]) + 3)].strip()
+
+            # Descarta boletins/tickers recorrentes (ruído, sem valor noticioso)
+            if is_junk_title(title):
+                continue
 
             link_key = item["link"].split("?")[0].strip().lower()
             title_key = normalize(title).strip()
