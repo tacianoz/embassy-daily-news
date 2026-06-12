@@ -40,7 +40,7 @@ FEEDS = [
     # Buscas dedicadas (Google News RSS) — varrem toda a imprensa indiana
     # procurando menções a Brasil e BRICS, que raramente aparecem nos feeds
     # de seção. O <source> de cada item traz o nome real do veículo.
-    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+-football+-soccer+-match+-cricket&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"]},
+    {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"]},
     {"name": "Google News — Brasil", "url": "https://news.google.com/rss/search?q=Brazil+(Lula+OR+Mercosur+OR+Petrobras+OR+Embraer+OR+ethanol+OR+trade+OR+Amazon)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"]},
     {"name": "Google News — BRICS", "url": "https://news.google.com/rss/search?q=BRICS&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brics"]},
     # Cobertura indiana do Brasil e do entorno latino-americano.
@@ -963,7 +963,11 @@ SCORE_RUBRIC = (
     "   30-49: política/economia/energia/ciência/clima da Índia em geral; E "
     "notícias internacionais que NÃO envolvem a Índia nem o Brasil (ex.: "
     "relações entre terceiros países, como China e Coreia do Norte).\n"
-    "   0-29: notícia local/factual/curiosidade sem interesse diplomático.\n\n"
+    "   0-29: notícia local/factual/curiosidade sem interesse diplomático, "
+    "incluindo ESPORTE DE ROTINA (placares, transferências de clubes). "
+    "EXCEÇÃO — futebol de DESTAQUE ligado ao Brasil merece 30-55: Copa do "
+    "Mundo, seleção brasileira, clássicos como Brasil×Argentina, e a torcida/"
+    "cultura do Brasil na Índia.\n\n"
     "PRINCÍPIO GERAL (vale para TODOS os temas, inclusive energia, ciência e "
     "clima): relevância = envolvimento com a ÍNDIA ou o BRASIL. Priorize "
     "política, empresas, projetos, mercados e relações internacionais que "
