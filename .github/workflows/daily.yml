@@ -1,14 +1,10 @@
 name: Atualização diária do dashboard
 
 on:
-  schedule:
-    # 01:43 UTC = 07:13 em Nova Délhi (IST, UTC+5:30) — toda manhã na Índia.
-    # Minuto "quebrado" de propósito: horários redondos (:00/:30) concentram
-    # jobs no GitHub e têm mais chance de ser atrasados ou pulados.
-    - cron: "43 1 * * *"
-    # Redundância: se o disparo acima for pulado pelo GitHub, este cobre.
-    - cron: "13 2 * * *"
-  workflow_dispatch:        # permite rodar manualmente pela aba Actions
+  # Disparo diário é feito por um agendador externo (cron-job.org) via API,
+  # chamando este workflow_dispatch — não usamos o schedule do GitHub porque
+  # ele atrasa/pula com frequência.
+  workflow_dispatch:        # disparo diário (cron-job.org) e execução manual
   push:
     branches: [main]
     paths:
