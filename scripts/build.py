@@ -54,6 +54,8 @@ FEEDS = [
     {"name": "Google News — C&T", "url": "https://news.google.com/rss/search?q=India+(%22digital+public+infrastructure%22+OR+%22quantum+computing%22+OR+supercomputer+OR+agritech+OR+healthtech+OR+biotechnology+OR+%22deep+tech%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["cti"], "scope_india": True},
     {"name": "Google News — Mineração", "url": "https://news.google.com/rss/search?q=India+(%22critical+minerals%22+OR+%22rare+earths%22+OR+%22rare+earth%22+OR+lithium+OR+cobalt+OR+%22mineral+exploration%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["energia"], "scope_india": True},
     {"name": "Google News — Clima", "url": "https://news.google.com/rss/search?q=India+(%22climate+change%22+OR+emissions+OR+%22net+zero%22+OR+pollution+OR+biodiversity+OR+%22COP30%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["clima"], "scope_india": True},
+    {"name": "Google News — Defesa", "url": "https://news.google.com/rss/search?q=India+(defence+OR+military+OR+%22fighter+jet%22+OR+DRDO+OR+missile+OR+%22armed+forces%22+OR+warship+OR+%22air+force%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["defesa"], "scope_india": True},
+    {"name": "Google News — Defesa/Brasil", "url": "https://news.google.com/rss/search?q=India+(Embraer+OR+%22C-390%22+OR+%22KC-390%22+OR+Gripen+OR+%22Taurus+Armas%22+OR+%22Brazilian+defence%22+OR+%22defence+export%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["defesa", "brasil"], "scope_india": True},
 
     # The Hindu
     {"name": "The Hindu — Nacional", "url": "https://www.thehindu.com/news/national/feeder/default.rss", "themes": []},
@@ -144,6 +146,31 @@ THEMES = {
             "india us", "india china", "india russia", "india pakistan",
             "united nations", "free trade agreement", "fta", "indo us",
             "sco summit", "modi visit",
+        ],
+    },
+    "defesa": {
+        "label": "Defesa",
+        "desc": "Defesa, indústria bélica e cooperação militar",
+        "color": "#475569",
+        "icon": "🛡️",
+        "keywords": [
+            # geral / forças armadas
+            "defence", "defense", "military", "armed forces", "indian army",
+            "indian navy", "indian air force", "defence ministry",
+            "defence minister", "rajnath singh", "drdo", "defence deal",
+            "arms deal", "defence export", "defence procurement",
+            "military exercise", "air defence",
+            # aeronaves e plataformas
+            "fighter jet", "fighter aircraft", "warship", "submarine",
+            "aircraft carrier", "tejas", "rafale", "c 390", "kc 390",
+            "gripen", "transport aircraft", "helicopter",
+            # mísseis e munições
+            "missile", "missile system", "brahmos", "akash missile",
+            "s 400", "artillery", "ammunition", "munitions",
+            # empresas (Brasil + concorrentes da Embraer)
+            "embraer", "taurus armas", "lockheed", "lockheed martin",
+            "airbus defence", "boeing defense", "dassault", "saab",
+            "leonardo", "northrop",
         ],
     },
     "politica_interna": {
@@ -882,7 +909,9 @@ DIPLOMAT_PERSONA = (
 SCORE_RUBRIC = (
     "Pontue de 0 a 100 a RELEVÂNCIA PARA A EMBAIXADA do Brasil em Nova Délhi. "
     "Use estas FAIXAS (não estoure a faixa do Brasil para temas setoriais):\n"
-    "   90-100: menções diretas ao Brasil e relações bilaterais Índia-Brasil.\n"
+    "   90-100: menções diretas ao Brasil e relações bilaterais Índia-Brasil "
+    "(inclui empresas brasileiras de defesa — Embraer, Taurus, CBC — e "
+    "negócios/cooperação de defesa Índia-Brasil).\n"
     "   80-89: BRICS, cúpulas com participação do Brasil, e América Latina/"
     "Mercosul/América do Sul (entorno próximo do Brasil).\n"
     "   65-79: política externa DA ÍNDIA (relações da Índia com outros países; "
@@ -892,7 +921,9 @@ SCORE_RUBRIC = (
     "minerais críticos e terras raras; em tecnologia — IA, supercomputação, "
     "DPI (infraestrutura pública digital) e soberania digital, semicondutores, "
     "computação quântica, espaço/ISRO, agritech, healthtech e biotecnologia; "
-    "em clima — conferências do clima (COP) e ONU.\n"
+    "em defesa — indústria bélica indiana, aeronaves militares, mísseis e "
+    "negócios de defesa (concorrentes da Embraer como Lockheed/Airbus/Saab "
+    "entram aqui); em clima — conferências do clima (COP) e ONU.\n"
     "   30-49: política/economia/energia/ciência/clima da Índia em geral; E "
     "notícias internacionais que NÃO envolvem a Índia nem o Brasil (ex.: "
     "relações entre terceiros países, como China e Coreia do Norte).\n"
@@ -990,6 +1021,9 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         "  brasil = menções ao Brasil OU a temas muito próximos do Brasil "
         "(América Latina, Mercosul, América do Sul, CELAC); brics = BRICS; "
         "politica_externa = política externa/relações internacionais da Índia; "
+        "defesa = defesa, forças armadas, indústria bélica, aeronaves e navios "
+        "militares, mísseis, exportações/negócios de defesa (Embraer, Taurus, "
+        "CBC, Gripen, Rafale, BrahMos, etc.); "
         "politica_interna = política doméstica indiana; economia = economia/"
         "mercados/comércio; energia = petróleo, gás, eletricidade, renováveis, "
         "nuclear (energia), biocombustíveis, mineração, minerais críticos e "
@@ -1188,8 +1222,9 @@ def main() -> int:
     # (foco da Embaixada: Brasil ≫ BRICS > política internacional > demais),
     # veículo de peso, origem indiana, recência e cruzamento de temas.
     THEME_WEIGHT = {
-        "brasil": 6, "brics": 5, "politica_externa": 3, "politica_interna": 2,
-        "economia": 2, "energia": 2, "cti": 2, "clima": 2,
+        "brasil": 6, "brics": 5, "politica_externa": 3, "defesa": 3,
+        "politica_interna": 2, "economia": 2, "energia": 2, "cti": 2,
+        "clima": 2,
     }
 
     def relevance(a: dict) -> float:
