@@ -144,8 +144,13 @@ THEMES = {
         "icon": "🇧🇷",
         "keywords": [
             "brazil", "brazilian", "brasil", "brasilia", "lula", "mercosur",
-            "mercosul", "itamaraty", "sao paulo", "rio de janeiro", "petrobras",
-            "embraer", "bolsonaro", "planalto", "amazon basin",
+            "mercosul", "itamaraty", "sao paulo", "rio de janeiro",
+            "bolsonaro", "planalto", "amazon basin",
+            # grandes empresas brasileiras
+            "embraer", "petrobras", "weg", "gerdau", "jbs", "marfrig",
+            "suzano", "braskem", "ambev", "itau", "bradesco", "nubank",
+            "stefanini", "eletrobras", "banco do brasil", "bndes",
+            "taurus armas", "marcopolo",
             # interesse muito próximo do Brasil
             "latin america", "latin american", "south america", "celac",
         ],
@@ -348,6 +353,19 @@ def is_indian(source: str) -> bool:
 
 def is_priority(source: str) -> bool:
     return matches_outlet(source, PRIORITY_OUTLETS)
+
+
+# Grandes empresas brasileiras: ao serem citadas, a matéria SEMPRE recebe a
+# tag "brasil" (mesmo que a IA não a inclua na recategorização).
+BRAZIL_COMPANIES = [
+    "embraer", "petrobras", "weg", "gerdau", "jbs", "marfrig", "suzano",
+    "braskem", "ambev", "itau", "bradesco", "nubank", "stefanini",
+    "eletrobras", "banco do brasil", "bndes", "taurus armas", "marcopolo",
+]
+
+
+def mentions_brazil_company(text: str) -> bool:
+    return matches_outlet(text, BRAZIL_COMPANIES)
 
 # --------------------------------------------------------------------------- #
 # Utilidades
@@ -1305,6 +1323,12 @@ def main() -> int:
     articles = [a for a in articles if a["themes"]]
     if before != len(articles):
         print(f"  [diag] removidas por recategorização da IA: {before - len(articles)}")
+
+    # Garantia: matéria que cita grande empresa brasileira SEMPRE tem tag
+    # 'brasil' (e em destaque, como tema principal) — mesmo que a IA não inclua.
+    for a in articles:
+        if "brasil" not in a["themes"] and mentions_brazil_company(a["title"] + " " + a["summary"]):
+            a["themes"] = ["brasil"] + a["themes"]
 
     # Se a IA pontuou os itens, ela passa a comandar a ordenação: notas da IA
     # primeiro (desc); itens não avaliados seguem pelo ranking heurístico.
