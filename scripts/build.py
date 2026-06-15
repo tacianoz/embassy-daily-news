@@ -55,6 +55,8 @@ FEEDS = [
     {"name": "Google News — C&T", "url": "https://news.google.com/rss/search?q=India+(%22digital+public+infrastructure%22+OR+%22quantum+computing%22+OR+supercomputer+OR+agritech+OR+healthtech+OR+biotechnology+OR+%22deep+tech%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["cti"], "scope_india": True},
     {"name": "Google News — Mineração", "url": "https://news.google.com/rss/search?q=India+(%22critical+minerals%22+OR+%22rare+earths%22+OR+%22rare+earth%22+OR+lithium+OR+cobalt+OR+%22mineral+exploration%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["energia"], "scope_india": True},
     {"name": "Google News — Clima", "url": "https://news.google.com/rss/search?q=India+(%22climate+change%22+OR+emissions+OR+%22net+zero%22+OR+pollution+OR+biodiversity+OR+%22COP30%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["clima"], "scope_india": True},
+    # Análise / reflexão estratégica (geopolítica e geoeconômica)
+    {"name": "Google News — Análise estratégica", "url": "https://news.google.com/rss/search?q=India+(geopolitics+OR+geoeconomic+OR+geo-economic+OR+%22strategic+autonomy%22+OR+%22world+order%22+OR+%22great+power%22+OR+doctrine)&hl=en-IN&gl=IN&ceid=IN:en", "themes": [], "scope_india": True},
     {"name": "Google News — Defesa", "url": "https://news.google.com/rss/search?q=India+(defence+OR+military+OR+%22fighter+jet%22+OR+DRDO+OR+missile+OR+%22armed+forces%22+OR+warship+OR+%22air+force%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["defesa"], "scope_india": True},
     {"name": "Google News — Defesa/Brasil", "url": "https://news.google.com/rss/search?q=India+(Embraer+OR+%22C-390%22+OR+%22KC-390%22+OR+Gripen+OR+%22Taurus+Armas%22+OR+%22Brazilian+defence%22+OR+%22defence+export%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["defesa", "brasil"], "scope_india": True},
 
@@ -66,6 +68,8 @@ FEEDS = [
     {"name": "The Hindu — Ciência", "url": "https://www.thehindu.com/sci-tech/science/feeder/default.rss", "themes": ["cti"]},
     {"name": "The Hindu — Tecnologia", "url": "https://www.thehindu.com/sci-tech/technology/feeder/default.rss", "themes": ["cti"]},
     {"name": "The Hindu — Energia e Meio Ambiente", "url": "https://www.thehindu.com/sci-tech/energy-and-environment/feeder/default.rss", "themes": ["energia", "clima"]},
+    {"name": "The Hindu — Opinião (Lead)", "url": "https://www.thehindu.com/opinion/lead/feeder/default.rss", "themes": []},
+    {"name": "The Hindu — Opinião (Op-Ed)", "url": "https://www.thehindu.com/opinion/op-ed/feeder/default.rss", "themes": []},
 
     # The Indian Express
     {"name": "Indian Express — Índia", "url": "https://indianexpress.com/section/india/feed/", "themes": []},
@@ -1042,7 +1046,11 @@ SCORE_RUBRIC = (
     "ALTA (75-100): relação Índia–Brasil e cooperação/empresas bilaterais; "
     "BRICS; grandes decisões e movimentos da POLÍTICA, ECONOMIA e POLÍTICA "
     "EXTERNA indianas com peso estratégico (acordos, política comercial, "
-    "Índia–China e outras potências, defesa, energia, tecnologia/DPI, agro).\n"
+    "Índia–China e outras potências, defesa, energia, tecnologia/DPI, agro); "
+    "e grandes ANÁLISES / artigos de REFLEXÃO estratégica (geopolítica ou "
+    "geoeconômica) sobre a Índia e sua inserção no mundo — peças que ajudam a "
+    "entender tendências e doutrina (ex.: 'From minerals to might: India's "
+    "next geo-economic imperative').\n"
     "MÉDIA (40-74): notícia setorial, econômica ou política indiana de "
     "interesse, porém mais rotineira ou de menor alcance.\n"
     "BAIXA (0-39): episódios isolados ou repetitivos, acidentes/crimes locais, "
@@ -1081,7 +1089,10 @@ EDITOR_PROMPT = (
     "comércio), relação Índia–Brasil e BRICS, cooperação setorial (defesa, "
     "energia, tecnologia, agro).\n"
     "- DIVERSIDADE: não encha de um só tema nem repita o mesmo fato/assunto; "
-    "varie. Não selecione vários itens quase idênticos.\n\n"
+    "varie. Não selecione vários itens quase idênticos.\n"
+    "- VALORIZE grandes ANÁLISES e artigos de REFLEXÃO estratégica "
+    "(geopolítica/geoeconômica) sobre a Índia — não só notícia factual; essas "
+    "peças costumam informar muito o diplomata sobre tendências e estratégia.\n\n"
     "Responda APENAS em JSON, em ordem editorial (mais relevante primeiro): "
     '{"destaques": [{"i": <índice>, "resumo": "<1 frase factual em PT, máx. 160>"}]}.\n\n'
     "Matérias:\n"
