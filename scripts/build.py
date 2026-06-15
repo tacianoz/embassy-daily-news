@@ -677,7 +677,8 @@ def render_diag(diag: dict, themes: dict) -> str:
     feeds_rows = "".join(
         f'<tr class="{"ok" if f["ok"] else "fail"}"><td>{esc(f["feed"])}</td>'
         f'<td>{"ok" if f["ok"] else "sem resposta"}</td>'
-        f'<td>{f["itens"]}</td><td>{f["mantidas"]}</td></tr>'
+        f'<td>{f["itens"]}</td><td>{f["mantidas"]}</td>'
+        f'<td class="d">{esc(", ".join(f"{k}:{v}" for k, v in f.get("descartes", {}).items()))}</td></tr>'
         for f in diag["feeds"]
     )
     secs = "".join(
@@ -695,7 +696,7 @@ def render_diag(diag: dict, themes: dict) -> str:
  .box{{background:#161b22;border:1px solid #232a35;border-radius:10px;padding:12px 16px;margin:10px 0}}
  table{{width:100%;border-collapse:collapse;font-size:13px}} td,th{{text-align:left;padding:4px 8px;border-bottom:1px solid #232a35}}
  tr.fail{{color:#f87171}} ol.arts,ul{{padding-left:20px;font-size:13px}} li{{margin:6px 0}}
- .t{{color:#6c8cff}} .r{{color:#9aa4b2}} a{{color:#58a6ff}}
+ .t{{color:#6c8cff}} .r{{color:#9aa4b2}} a{{color:#58a6ff}} td.d{{color:#9aa4b2;font-size:12px}}
 </style></head><body>
 <h1>🔎 Diagnóstico do run · {esc(diag["gerado"])}</h1>
 <div class="box">Janela: <b>{t and esc(diag["janela_h"])}h</b> · Matérias: <b>{esc(t["materias"])}</b> ·
@@ -705,7 +706,7 @@ def render_diag(diag: dict, themes: dict) -> str:
 <h2>✨ Destaques escolhidos (curadoria)</h2><ol class="arts">{li_articles(diag["destaques"])}</ol>
 <h2>📊 Topo por seção</h2>{secs}
 <h2>📡 Feeds ({sum(1 for f in diag["feeds"] if f["ok"])}/{len(diag["feeds"])} responderam)</h2>
-<div class="box"><table><tr><th>Feed</th><th>status</th><th>itens</th><th>mantidas</th></tr>{feeds_rows}</table></div>
+<div class="box"><table><tr><th>Feed</th><th>status</th><th>itens</th><th>mantidas</th><th>descartes (motivo)</th></tr>{feeds_rows}</table></div>
 </body></html>"""
 
 
@@ -1449,6 +1450,8 @@ def main() -> int:
             continue
         parsed = parse_feed(raw, name)
         _kept_before = len(articles)
+        drop = {"antiga": 0, "sem_data": 0, "duplicada": 0, "sem_tema": 0,
+                "lixo_idioma": 0, "fonte": 0}
         for item in parsed:
             # Nome do veículo: usa o <source> (Google News) quando houver,
             # senão o nome-base do feed.
@@ -1463,17 +1466,21 @@ def main() -> int:
 
             # Descarta boletins/tickers recorrentes e matérias não-inglês
             if is_junk_title(title) or not is_english(title):
+                drop["lixo_idioma"] += 1
                 continue
 
             link_key = item["link"].split("?")[0].strip().lower()
             title_key = normalize(title).strip()
             if link_key in seen_links or (title_key and title_key in seen_titles):
+                drop["duplicada"] += 1
                 continue
-            # filtro por data: só últimas 24 horas
+            # filtro por data: só últimas 24/48 horas
             if item["published"] is None:
                 if require_date:
+                    drop["sem_data"] += 1
                     continue
             elif item["published"] < cutoff:
+                drop["antiga"] += 1
                 continue
 
             # Buscas agregadas (Google News): SÓ imprensa indiana reputada
@@ -1481,10 +1488,12 @@ def main() -> int:
             # aleatórios/desconhecidos são descartados — este é um monitor
             # da imprensa indiana.
             if item.get("outlet") and not is_indian(outlet):
+                drop["fonte"] += 1
                 continue
 
             themes = classify(item, hint)
             if not themes:
+                drop["sem_tema"] += 1
                 continue  # só interessa o que cai em algum tema
 
             article = {
@@ -1507,6 +1516,7 @@ def main() -> int:
                 if article["priority"] and not kept["priority"]:
                     kept.update(article)   # promove a versão do veículo grande
                     dup["tokens"] = tok
+                drop["duplicada"] += 1
                 continue
 
             seen_links.add(link_key)
@@ -1516,7 +1526,8 @@ def main() -> int:
             articles.append(article)
             seen_clusters.append({"tokens": tok, "article": article})
         feed_stats.append({"feed": name, "ok": True, "itens": len(parsed),
-                           "mantidas": len(articles) - _kept_before})
+                           "mantidas": len(articles) - _kept_before,
+                           "descartes": {k: v for k, v in drop.items() if v}})
 
     # Ranking heurístico de relevância (determinístico, sem IA). Pondera tema
     # (foco da Embaixada: Brasil ≫ BRICS > política internacional > demais),
