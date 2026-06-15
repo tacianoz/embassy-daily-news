@@ -56,7 +56,7 @@ FEEDS = [
     {"name": "Google News — Mineração", "url": "https://news.google.com/rss/search?q=India+(%22critical+minerals%22+OR+%22rare+earths%22+OR+%22rare+earth%22+OR+lithium+OR+cobalt+OR+%22mineral+exploration%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["energia"], "scope_india": True},
     {"name": "Google News — Clima", "url": "https://news.google.com/rss/search?q=India+(%22climate+change%22+OR+emissions+OR+%22net+zero%22+OR+pollution+OR+biodiversity+OR+%22COP30%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["clima"], "scope_india": True},
     # Análise / reflexão estratégica (geopolítica e geoeconômica)
-    {"name": "Google News — Análise estratégica", "url": "https://news.google.com/rss/search?q=India+(geopolitics+OR+geoeconomic+OR+geo-economic+OR+%22strategic+autonomy%22+OR+%22world+order%22+OR+%22great+power%22+OR+doctrine)&hl=en-IN&gl=IN&ceid=IN:en", "themes": [], "scope_india": True},
+    {"name": "Google News — Análise estratégica", "url": "https://news.google.com/rss/search?q=India+(geopolitics+OR+geoeconomic+OR+geo-economic+OR+%22strategic+autonomy%22+OR+%22world+order%22+OR+%22great+power%22+OR+doctrine)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["opiniao"], "scope_india": True},
     {"name": "Google News — Defesa", "url": "https://news.google.com/rss/search?q=India+(defence+OR+military+OR+%22fighter+jet%22+OR+DRDO+OR+missile+OR+%22armed+forces%22+OR+warship+OR+%22air+force%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["defesa"], "scope_india": True},
     {"name": "Google News — Defesa/Brasil", "url": "https://news.google.com/rss/search?q=India+(Embraer+OR+%22C-390%22+OR+%22KC-390%22+OR+Gripen+OR+%22Taurus+Armas%22+OR+%22Brazilian+defence%22+OR+%22defence+export%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["defesa", "brasil"], "scope_india": True},
 
@@ -68,8 +68,9 @@ FEEDS = [
     {"name": "The Hindu — Ciência", "url": "https://www.thehindu.com/sci-tech/science/feeder/default.rss", "themes": ["cti"]},
     {"name": "The Hindu — Tecnologia", "url": "https://www.thehindu.com/sci-tech/technology/feeder/default.rss", "themes": ["cti"]},
     {"name": "The Hindu — Energia e Meio Ambiente", "url": "https://www.thehindu.com/sci-tech/energy-and-environment/feeder/default.rss", "themes": ["energia", "clima"]},
-    {"name": "The Hindu — Opinião (Lead)", "url": "https://www.thehindu.com/opinion/lead/feeder/default.rss", "themes": []},
-    {"name": "The Hindu — Opinião (Op-Ed)", "url": "https://www.thehindu.com/opinion/op-ed/feeder/default.rss", "themes": []},
+    {"name": "The Hindu — Opinião (Lead)", "url": "https://www.thehindu.com/opinion/lead/feeder/default.rss", "themes": ["opiniao"]},
+    {"name": "The Hindu — Opinião (Op-Ed)", "url": "https://www.thehindu.com/opinion/op-ed/feeder/default.rss", "themes": ["opiniao"]},
+    {"name": "Indian Express — Opinião", "url": "https://indianexpress.com/section/opinion/feed/", "themes": ["opiniao"]},
 
     # The Indian Express
     {"name": "Indian Express — Índia", "url": "https://indianexpress.com/section/india/feed/", "themes": []},
@@ -298,6 +299,13 @@ THEMES = {
             "drought", "cyclone", "heatwave", "green energy", "renewable energy",
         ],
     },
+    "opiniao": {
+        "label": "Opiniões & Análises",
+        "desc": "Artigos de opinião, análise e reflexão estratégica",
+        "color": "#8d6e63",
+        "icon": "📝",
+        "keywords": [],  # vem das fontes de opinião/análise (hint), não de keyword
+    },
 }
 
 USER_AGENT = "Mozilla/5.0 (compatible; EmbassyDailyNews/1.0; +https://github.com/tacianoz/embassy-daily-news)"
@@ -438,6 +446,13 @@ JUNK_TITLE = [
 def is_junk_title(title: str) -> bool:
     blob = normalize(title)
     return any(p in blob for p in JUNK_TITLE)
+
+
+def is_english(text: str) -> bool:
+    """Descarta títulos em scripts índicos (hindi/devanagari, bengali, tâmil,
+    telugu, etc.). O monitor exibe só matérias em inglês."""
+    indic = sum(1 for ch in (text or "") if 0x0900 <= ord(ch) <= 0x0DFF)
+    return indic < 4
 
 # --------------------------------------------------------------------------- #
 # Utilidades
@@ -1189,7 +1204,10 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         "nuclear (energia), biocombustíveis, mineração, minerais críticos e "
         "terras raras; cti = ciência, tecnologia, espaço, inovação, IA, "
         "semicondutores, quântica, supercomputação, DPI, biotech, agritech, "
-        "healthtech; clima = clima e meio ambiente.\n\n"
+        "healthtech; clima = clima e meio ambiente; "
+        "opiniao = artigo de OPINIÃO, análise, editorial, coluna ou reflexão "
+        "estratégica (use EM ADIÇÃO ao(s) tema(s) factual(is), quando o texto "
+        "for analítico/opinativo, não uma notícia factual).\n\n"
         "Para CADA item, devolva:\n"
         "- \"temas\": lista das CHAVES que REALMENTE se aplicam ao conteúdo. "
         "Entenda o contexto: 'óleo quente de cozinha' NÃO é energia; 'armas/"
@@ -1360,8 +1378,8 @@ def main() -> int:
             if item.get("outlet") and title.endswith(" - " + item["outlet"]):
                 title = title[: -(len(item["outlet"]) + 3)].strip()
 
-            # Descarta boletins/tickers recorrentes (ruído, sem valor noticioso)
-            if is_junk_title(title):
+            # Descarta boletins/tickers recorrentes e matérias não-inglês
+            if is_junk_title(title) or not is_english(title):
                 continue
 
             link_key = item["link"].split("?")[0].strip().lower()
@@ -1394,6 +1412,7 @@ def main() -> int:
                 "published": item["published"].isoformat() if item["published"] else None,
                 "themes": themes,
                 "priority": is_priority(outlet),
+                "opinion": "opiniao" in hint,  # veio de fonte de opinião/análise
             }
 
             # Quase-duplicata (mesma notícia, veículos/manchetes diferentes):
@@ -1420,7 +1439,7 @@ def main() -> int:
     THEME_WEIGHT = {
         "brasil": 6, "brics": 5, "politica_externa": 3, "defesa": 3,
         "politica_interna": 2, "economia": 2, "energia": 2, "cti": 2,
-        "clima": 2,
+        "clima": 2, "opiniao": 3,
     }
 
     def relevance(a: dict) -> float:
@@ -1442,6 +1461,12 @@ def main() -> int:
     # chave/cota do Gemini não estiver disponível.
     ai_highlights = gemini_enrich(articles, now)
     ai_curated = bool(ai_highlights)
+
+    # Garantia: matérias vindas de fontes de opinião/análise mantêm a tag
+    # 'opiniao' (a IA pode tê-la descartado na recategorização).
+    for a in articles:
+        if a.get("opinion") and "opiniao" not in a["themes"]:
+            a["themes"].append("opiniao")
 
     # A IA pode ter recategorizado matérias como irrelevantes (temas = []):
     # removê-las limpa os falsos positivos (ex.: "óleo quente" em Energia).
