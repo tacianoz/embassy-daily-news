@@ -121,21 +121,16 @@ FEEDS = [
     # --- Publicações especializadas indianas (RSS direto) ---
     # Defesa
     {"name": "Livefist", "url": "https://www.livefistdefence.com/feed/", "themes": ["defesa"]},
-    {"name": "IDRW", "url": "https://idrw.org/feed/", "themes": ["defesa"]},
-    {"name": "Raksha Anirveda", "url": "https://raksha-anirveda.com/feed/", "themes": ["defesa"]},
     {"name": "Indian Defence Review", "url": "https://www.indiandefencereview.com/feed/", "themes": ["defesa"]},
     {"name": "Bharat Shakti", "url": "https://bharatshakti.in/feed/", "themes": ["defesa"]},
     {"name": "The EurAsian Times", "url": "https://www.eurasiantimes.com/feed/", "themes": ["defesa", "politica_externa"]},
     # Tecnologia / startups
     {"name": "Inc42", "url": "https://inc42.com/feed/", "themes": ["cti", "economia"]},
-    {"name": "Entrackr", "url": "https://entrackr.com/feed/", "themes": ["cti", "economia"]},
     {"name": "MediaNama", "url": "https://www.medianama.com/feed/", "themes": ["cti"]},
-    {"name": "Analytics India Magazine", "url": "https://analyticsindiamag.com/feed/", "themes": ["cti"]},
     {"name": "YourStory", "url": "https://yourstory.com/feed", "themes": ["cti", "economia"]},
     {"name": "ET Tech", "url": "https://tech.economictimes.indiatimes.com/rss/topstories", "themes": ["cti"]},
     # Energia / mineração / agro
     {"name": "Mercom India", "url": "https://www.mercomindia.com/feed/", "themes": ["energia"]},
-    {"name": "Saur Energy", "url": "https://www.saurenergy.com/feed/", "themes": ["energia"]},
     {"name": "PV Magazine India", "url": "https://www.pv-magazine-india.com/feed/", "themes": ["energia"]},
     {"name": "ChiniMandi", "url": "https://www.chinimandi.com/feed/", "themes": ["energia"]},
     {"name": "ETEnergyWorld", "url": "https://energy.economictimes.indiatimes.com/rss/topstories", "themes": ["energia"]},
@@ -1294,9 +1289,14 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         "interesse da Embaixada, use []. ORDENE os temas do MAIS CENTRAL (o "
         "que melhor define o assunto principal da notícia) para o menos "
         "central.\n"
+        "- \"evento\": rótulo curto e CANÔNICO em inglês (3 a 6 palavras) que "
+        "identifica o FATO central — IDÊNTICO para matérias sobre o mesmo "
+        "acontecimento, mesmo de veículos/manchetes diferentes (ex.: para várias "
+        "matérias sobre a aprovação do etanol 100%, use sempre 'India 100% "
+        "ethanol fuel approval').\n"
         "- \"score\": " + SCORE_RUBRIC + "\n\n"
         'Responda APENAS em JSON, sem texto fora dele: '
-        '{"itens": {"<i>": {"temas": ["..."], "score": <0-100>}}}.\n\n'
+        '{"itens": {"<i>": {"temas": ["..."], "evento": "...", "score": <0-100>}}}.\n\n'
         'Cada item vem como `i: "título" — fonte :: resumo`. CONSIDERE também '
         'o resumo (ex.: o Brasil pode ser citado só no resumo, não no título).\n\n'
     )
@@ -1333,6 +1333,9 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
             n_scored += 1
         except (TypeError, ValueError):
             pass
+        ev = v.get("evento")
+        if isinstance(ev, str) and ev.strip():
+            candidates[idx]["event_toks"] = title_tokens(ev)
         # Recategorização inteligente: a IA decide os temas reais da matéria,
         # ordenados do MAIS CENTRAL para o menos (preserva a ordem da IA).
         temas = v.get("temas")
@@ -1575,6 +1578,33 @@ def main() -> int:
             a["published"] or "",
         ), reverse=True)
 
+    # Limita (não elimina) a repetição do MESMO FATO: ler de mais jornais é
+    # útil, sobretudo se o evento é importante. Mantém até 2 matérias por
+    # evento — e até 4 quando o evento é importante (nota alta). Usa o rótulo
+    # canônico de evento dado pela IA. Itens sem rótulo são sempre mantidos.
+    n_dup_event = 0
+    if any("event_toks" in a for a in articles):
+        kept, clusters = [], []  # clusters: [{"toks","count","cap"}]
+        for a in articles:
+            ev = a.get("event_toks")
+            if ev and len(ev) >= 2:
+                c = next((c for c in clusters
+                          if len(ev & c["toks"]) >= 3
+                          and len(ev & c["toks"]) / min(len(ev), len(c["toks"])) >= 0.67),
+                         None)
+                if c is None:
+                    cap = 4 if (a.get("ai_score") or 0) >= 85 else 2
+                    clusters.append({"toks": ev, "count": 1, "cap": cap})
+                elif c["count"] < c["cap"]:
+                    c["count"] += 1
+                else:
+                    n_dup_event += 1
+                    continue
+            kept.append(a)
+        articles = kept
+        if n_dup_event:
+            print(f"  [diag] repetições do mesmo evento acima do teto: {n_dup_event}")
+
     # Destaques sempre presentes na página principal: curadoria da IA quando
     # disponível; senão, os mais relevantes pelo heurístico. Em ambos os casos,
     # PREFERÊNCIA ABSOLUTA por imprensa indiana (sem internacionais).
@@ -1628,7 +1658,8 @@ def main() -> int:
         "ia": {"curadoria": ai_curated,
                "pontuadas": sum(1 for a in articles if "ai_score" in a)},
         "totais": {"materias": len(articles), "fontes": len(ok_sources),
-                   "removidas_recategorizacao": n_removed_recat},
+                   "removidas_recategorizacao": n_removed_recat,
+                   "repeticoes_evento_removidas": n_dup_event},
         "feeds": feed_stats,
         "destaques": [_slim(a) for a in highlights],
         "secoes": {k: [_slim(a) for a in articles if k in a["themes"]][:8]
