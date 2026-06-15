@@ -83,9 +83,7 @@ FEEDS = [
     {"name": "Indian Express — Índia", "url": "https://indianexpress.com/section/india/feed/", "themes": []},
     {"name": "Indian Express — Política", "url": "https://indianexpress.com/section/political-pulse/feed/", "themes": ["politica_interna"]},
     {"name": "Indian Express — Mundo", "url": "https://indianexpress.com/section/world/feed/", "themes": ["politica_externa"]},
-    {"name": "Indian Express — Economia", "url": "https://indianexpress.com/section/business/economy/feed/", "themes": ["economia"]},
     {"name": "Indian Express — Tecnologia", "url": "https://indianexpress.com/section/technology/feed/", "themes": ["cti"]},
-    {"name": "Indian Express — Clima", "url": "https://indianexpress.com/section/india/climate-change/feed/", "themes": ["clima"]},
 
     # The Times of India
     {"name": "Times of India — Índia", "url": "https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms", "themes": []},
@@ -102,8 +100,6 @@ FEEDS = [
 
     # The Economic Times
     {"name": "Economic Times — Economia", "url": "https://economictimes.indiatimes.com/news/economy/rssfeeds/1373380680.cms", "themes": ["economia"]},
-    {"name": "Economic Times — Energia", "url": "https://economictimes.indiatimes.com/industry/energy/power/rssfeeds/13357704.cms", "themes": ["energia"]},
-    {"name": "Economic Times — Política Externa", "url": "https://economictimes.indiatimes.com/news/economy/foreign-trade/rssfeeds/1373380681.cms", "themes": ["politica_externa", "economia"]},
 
     # Livemint
     {"name": "Livemint — Economia", "url": "https://www.livemint.com/rss/economy", "themes": ["economia"]},
@@ -114,9 +110,6 @@ FEEDS = [
     {"name": "NDTV — Mundo", "url": "https://feeds.feedburner.com/ndtvnews-world-news", "themes": ["politica_externa"]},
 
     # Mídia independente / análise
-    {"name": "The Wire", "url": "https://thewire.in/rss", "themes": []},
-    {"name": "Scroll.in", "url": "https://scroll.in/feeds/all.rss", "themes": []},
-    {"name": "Down To Earth — Meio Ambiente", "url": "https://www.downtoearth.org.in/rss/environment", "themes": ["clima"]},
 
     # --- Publicações especializadas indianas (RSS direto) ---
     # Defesa
@@ -128,7 +121,6 @@ FEEDS = [
     {"name": "Inc42", "url": "https://inc42.com/feed/", "themes": ["cti", "economia"]},
     {"name": "MediaNama", "url": "https://www.medianama.com/feed/", "themes": ["cti"]},
     {"name": "YourStory", "url": "https://yourstory.com/feed", "themes": ["cti", "economia"]},
-    {"name": "ET Tech", "url": "https://tech.economictimes.indiatimes.com/rss/topstories", "themes": ["cti"]},
     # Energia / mineração / agro
     {"name": "Mercom India", "url": "https://www.mercomindia.com/feed/", "themes": ["energia"]},
     {"name": "PV Magazine India", "url": "https://www.pv-magazine-india.com/feed/", "themes": ["energia"]},
@@ -413,7 +405,48 @@ CANONICAL_SOURCES = [
     ("Frontline", "frontline"),
     ("Down To Earth", "down to earth"),
     ("Mongabay India", "mongabay"),
+    ("WION", "wion"),
+    ("CNBC TV18", "cnbc tv18"), ("CNBC TV18", "cnbctv18"),
+    ("Swarajya", "swarajya"),
+    ("National Herald", "national herald"),
+    ("Zee Business", "zee business"), ("Zee News", "zee news"),
+    ("Rediff", "rediff"),
+    ("Oneindia", "oneindia"),
+    ("DNA India", "dna india"),
+    ("The Statesman", "the statesman"),
+    ("Telangana Today", "telangana today"),
+    ("Fortune India", "fortune india"),
+    # especializados (tech / setoriais) — unifica variações com .com etc.
+    ("Inc42", "inc42"),
+    ("Entrackr", "entrackr"),
+    ("MediaNama", "medianama"),
+    ("YourStory", "yourstory"),
+    ("Analytics India Magazine", "analytics india"),
+    ("The Ken", "the ken"),
+    ("TechCircle", "techcircle"),
+    ("Gadgets 360", "gadgets 360"), ("Gadgets 360", "gadgets360"),
+    ("ET Tech", "ettech"), ("ET Tech", "et tech"),
+    ("ETEnergyWorld", "etenergyworld"), ("ETEnergyWorld", "et energyworld"),
+    ("Mercom India", "mercom"),
+    ("PV Magazine India", "pv magazine"),
+    ("ChiniMandi", "chinimandi"),
+    ("Autocar India", "autocar"),
+    ("Livefist", "livefist"),
+    ("IDRW", "idrw"),
+    ("Indian Defence Review", "indian defence review"),
+    ("Bharat Shakti", "bharat shakti"),
+    ("Raksha Anirveda", "raksha anirveda"),
+    ("The EurAsian Times", "eurasian times"),
+    ("India Strategic", "india strategic"),
+    ("India Briefing", "india briefing"),
+    ("Krishi Jagran", "krishi jagran"), ("Krishi Jagran", "krishijagran"),
+    ("Newslaundry", "newslaundry"),
+    ("The Caravan", "the caravan"),
+    ("Moneycontrol", "money control"),
 ]
+
+# Sufixos de domínio que aparecem em alguns nomes de fonte do Google News.
+_SRC_SUFFIX_RE = re.compile(r"(?i)\.(com|in|org|net|co\.in)\b")
 
 
 def canonical_source(name: str) -> str:
@@ -421,7 +454,9 @@ def canonical_source(name: str) -> str:
     for display, token in CANONICAL_SOURCES:
         if (" " + token + " ") in blob:
             return display
-    return name.strip()
+    # Fallback: remove sufixo de domínio (.com/.in/...) para unificar
+    # "YourStory" e "YourStory.com" mesmo sem regra explícita.
+    return _SRC_SUFFIX_RE.sub("", name).strip()
 
 
 def is_priority(source: str) -> bool:
