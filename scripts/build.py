@@ -1149,7 +1149,7 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
             seen_ids.add(id(a))
             candidates.append(a)
 
-    for a in articles[:50]:
+    for a in articles[:90]:
         _add(a)
     for theme in THEMES:
         c = 0
@@ -1157,9 +1157,9 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
             if theme in a["themes"]:
                 _add(a)
                 c += 1
-                if c >= 40:
+                if c >= 60:
                     break
-    candidates = candidates[:240]
+    candidates = candidates[:420]
 
     # ---- Chamada 1: NOTA + TEMAS (a IA entende o texto e recategoriza) ----
     # Em LOTES: respostas menores não truncam, e a falha de um lote não
@@ -1250,7 +1250,7 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
             pool_ids.add(id(a))
             pool.append(a)
 
-    for a in scored[:18]:
+    for a in scored[:28]:
         _pool(a)
     for theme in THEMES:
         c = 0
@@ -1258,9 +1258,9 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
             if theme in a["themes"]:
                 _pool(a)
                 c += 1
-                if c >= 6:
+                if c >= 9:
                     break
-    pool = pool[:44]
+    pool = pool[:70]
 
     highlights: list[dict] = []
     if pool:
@@ -1303,15 +1303,18 @@ def main() -> int:
 
     now = datetime.now(timezone.utc)
 
-    # Janela de notícias: últimas 24 horas (janela rolante a partir do build).
+    # Janela de notícias: últimas 24h — mas 48h às SEGUNDAS (para cobrir o fim
+    # de semana), considerando o dia em Nova Délhi (IST), quando o build roda.
     # MAX_AGE_DAYS continua disponível só para testes locais (janela maior).
     IST = timezone(timedelta(hours=5, minutes=30))
     max_age_env = os.environ.get("MAX_AGE_DAYS")
     if max_age_env:
         cutoff = now - timedelta(days=int(max_age_env))
         require_date = False
+        window_h = int(max_age_env) * 24
     else:
-        cutoff = now - timedelta(hours=24)
+        window_h = 48 if now.astimezone(IST).weekday() == 0 else 24
+        cutoff = now - timedelta(hours=window_h)
         require_date = True
 
     seen_links: set[str] = set()
@@ -1462,7 +1465,7 @@ def main() -> int:
     _bio_kw = ("ethanol", "biofuel", "flex fuel", "biogas", "biodiesel",
                "e10", "e20", "e27", "e85", "e100", "bioenergy")
     bio = [a for a in articles if any(" " + k + " " in normalize(a["title"] + " " + a["summary"]) for k in _bio_kw)]
-    print(f"  [diag] biocombustível no período (últimas 24h): {len(bio)}")
+    print(f"  [diag] biocombustível no período (últimas {window_h}h): {len(bio)}")
     for a in bio[:6]:
         print(f"         score={a.get('ai_score', '-')} | {a['source']} | {a['title'][:64]}")
     en = [a for a in articles if "energia" in a["themes"]]
@@ -1487,7 +1490,7 @@ def main() -> int:
         "meta": {
             "generated_utc": now.isoformat(),
             "generated_label": generated_label,
-            "window": "últimas 24 horas",
+            "window": f"últimas {window_h} horas",
             "feeds": sorted(ok_sources, key=str.lower),
             "ai_curated": ai_curated,
         },
