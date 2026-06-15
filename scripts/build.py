@@ -1621,6 +1621,11 @@ def main() -> int:
     # PREFERÊNCIA ABSOLUTA por imprensa indiana (sem internacionais).
     highlights = ai_highlights if ai_curated else [a for a in articles if is_indian(a["source"])][:8]
 
+    # Remove campos transitórios não serializáveis (ex.: event_toks é um set)
+    # antes de gerar o JSON do payload.
+    for a in articles + highlights:
+        a.pop("event_toks", None)
+
     # Diagnóstico (aparece no log do Actions): mostra a realidade do dia.
     _bio_kw = ("ethanol", "biofuel", "flex fuel", "biogas", "biodiesel",
                "e10", "e20", "e27", "e85", "e100", "bioenergy")
