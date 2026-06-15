@@ -1035,45 +1035,56 @@ DIPLOMAT_PERSONA = (
 
 
 SCORE_RUBRIC = (
-    "Pontue de 0 a 100 a RELEVÂNCIA PARA A EMBAIXADA do Brasil em Nova Délhi. "
-    "Use estas FAIXAS (não estoure a faixa do Brasil para temas setoriais):\n"
-    "   90-100: menções diretas ao Brasil e relações bilaterais Índia-Brasil "
-    "(inclui empresas brasileiras de defesa — Embraer, Taurus, CBC — e "
-    "negócios/cooperação de defesa Índia-Brasil).\n"
-    "   80-89: BRICS, cúpulas com participação do Brasil, e América Latina/"
-    "Mercosul/América do Sul (entorno próximo do Brasil).\n"
-    "   65-79: política externa DA ÍNDIA (relações da Índia com outros países; "
-    "Índia em foros internacionais) e comércio exterior indiano.\n"
-    "   50-64: temas SETORIAIS prioritários — altos DENTRO do seu tema, mas "
-    "ABAIXO do Brasil: biocombustíveis (etanol, flex fuel, E20/E85/E100), "
-    "minerais críticos e terras raras; em tecnologia — IA, supercomputação, "
-    "DPI (infraestrutura pública digital) e soberania digital, semicondutores, "
-    "computação quântica, espaço/ISRO, agritech, healthtech e biotecnologia; "
-    "em defesa — indústria bélica indiana, aeronaves militares, mísseis e "
-    "negócios de defesa (concorrentes da Embraer como Lockheed/Airbus/Saab "
-    "entram aqui); em clima — conferências do clima (COP) e ONU.\n"
-    "   30-49: política/economia/energia/ciência/clima da Índia em geral; E "
-    "notícias internacionais que NÃO envolvem a Índia nem o Brasil (ex.: "
-    "relações entre terceiros países, como China e Coreia do Norte).\n"
-    "   0-29: notícia local/factual/curiosidade sem interesse diplomático, "
-    "incluindo ESPORTE DE ROTINA (placares, transferências de clubes) e "
-    "BOLETINS/RESUMOS RECORRENTES DE MERCADO (ex.: 'morning market update', "
-    "tickers de preços de commodities/câmbio/bolsa), MESMO que citem o Brasil "
-    "de passagem — só vale a pena um DESENVOLVIMENTO específico e substantivo, "
-    "não o boletim diário em si. "
-    "EXCEÇÃO — futebol de DESTAQUE ligado ao Brasil merece 30-55: Copa do "
-    "Mundo, seleção brasileira, clássicos como Brasil×Argentina, e a torcida/"
-    "cultura do Brasil na Índia.\n\n"
-    "PRINCÍPIO GERAL (vale para TODOS os temas, inclusive energia, ciência e "
-    "clima): relevância = envolvimento com a ÍNDIA ou o BRASIL. Priorize "
-    "política, empresas, projetos, mercados e relações internacionais que "
-    "ENVOLVAM a Índia (interna ou externamente) ou o Brasil. Uma notícia "
-    "estrangeira, cultural ou de curiosidade SEM ligação com Índia/Brasil "
-    "(ex.: uma balsa turística na Itália que 'aproveita a energia da água') é "
-    "IRRELEVANTE: score 0-15 e normalmente sem tema.\n"
-    "Dentro de uma mesma faixa, use números DISTINTOS para refletir a ordem "
-    "exata de relevância (evite empates) — o score ordena cada seção, do mais "
-    "para o menos relevante."
+    "Dê uma nota 0-100 de RELEVÂNCIA EDITORIAL para um diplomata brasileiro "
+    "que acompanha a Índia. LEIA o conteúdo e pergunte-se quanto aquilo de fato "
+    "INFORMA esse diplomata — julgue por importância e substância, NÃO por "
+    "fórmula nem por simples menção.\n"
+    "ALTA (75-100): relação Índia–Brasil e cooperação/empresas bilaterais; "
+    "BRICS; grandes decisões e movimentos da POLÍTICA, ECONOMIA e POLÍTICA "
+    "EXTERNA indianas com peso estratégico (acordos, política comercial, "
+    "Índia–China e outras potências, defesa, energia, tecnologia/DPI, agro).\n"
+    "MÉDIA (40-74): notícia setorial, econômica ou política indiana de "
+    "interesse, porém mais rotineira ou de menor alcance.\n"
+    "BAIXA (0-39): episódios isolados ou repetitivos, acidentes/crimes locais, "
+    "resultados esportivos de rotina, curiosidades, boletins de mercado e "
+    "tickers — INCLUSIVE quando citam o Brasil. Uma MENÇÃO ao Brasil NÃO "
+    "garante nota alta: pese a importância real (um acordo da Embraer vale "
+    "muito mais que uma queda de helicóptero ou um jogo da Copa; estes só "
+    "sobem se forem de real destaque nacional).\n"
+    "EQUILÍBRIO POR TEMA: em ENERGIA, distribua a importância entre petróleo/"
+    "gás, eletricidade, renováveis, nuclear, minerais críticos e "
+    "biocombustíveis conforme o peso da NOTÍCIA específica — NÃO privilegie "
+    "etanol/biocombustível automaticamente. Em ECONOMIA, foque a economia "
+    "indiana (interna e internacional: acordos comerciais, relação com China e "
+    "outros países, política do RBI/orçamento), sem deixar de pontuar outras "
+    "notícias econômicas relevantes.\n"
+    "Notícia estrangeira/curiosidade sem ligação com Índia ou Brasil é "
+    "irrelevante (0-15). Use notas DISTINTAS para refletir a ordem."
+)
+
+
+EDITOR_PROMPT = (
+    DIPLOMAT_PERSONA + "\n\n"
+    "Abaixo está uma lista pré-selecionada de matérias indianas do dia. Atue "
+    "como o EDITOR de clipping da Embaixada e escolha de 6 a 9 DESTAQUES — os "
+    "itens mais IMPORTANTES e INFORMATIVOS do dia para um diplomata brasileiro "
+    "na Índia. É uma seleção criteriosa e cautelosa, lendo cada matéria.\n"
+    "Critérios:\n"
+    "- IMPORTÂNCIA acima de menção: um episódio trivial ou repetitivo "
+    "(acidente, crime local, resultado esportivo) ou uma simples menção ao "
+    "Brasil NÃO entra só por isso — entra se for de real destaque. Ex.: um "
+    "acordo da Embraer importa muito mais que uma queda de helicóptero ou um "
+    "jogo da Copa (embora a queda ou a Copa POSSAM entrar se forem mesmo "
+    "relevantes).\n"
+    "- COBERTURA do que mais informa: grandes fatos da política, economia e "
+    "política externa indianas (Índia–China e outras potências, acordos, "
+    "comércio), relação Índia–Brasil e BRICS, cooperação setorial (defesa, "
+    "energia, tecnologia, agro).\n"
+    "- DIVERSIDADE: não encha de um só tema nem repita o mesmo fato/assunto; "
+    "varie. Não selecione vários itens quase idênticos.\n\n"
+    "Responda APENAS em JSON, em ordem editorial (mais relevante primeiro): "
+    '{"destaques": [{"i": <índice>, "resumo": "<1 frase factual em PT, máx. 160>"}]}.\n\n'
+    "Matérias:\n"
 )
 
 
@@ -1113,11 +1124,13 @@ def _gemini_call(prompt: str, api_key: str, model: str, max_tokens: int,
 
 
 def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
-    """A IA comanda o ranqueamento. Duas chamadas ao Gemini:
-      1) pontua um conjunto amplo (cobre cada seção a fundo) — só notas;
-      2) resume em PT apenas os Destaques.
-    Define a["ai_score"] e (nos destaques) a["ai_summary_text"]; retorna os
-    destaques (imprensa indiana). Falha graciosamente para o heurístico.
+    """A IA comanda o ranqueamento e a curadoria. Duas chamadas ao Gemini:
+      1) lê e pontua um conjunto amplo por relevância editorial + recategoriza
+         os temas (ordena cada seção);
+      2) CURADORIA editorial dos Destaques — seleciona, com juízo de
+         importância e diversidade, lendo as matérias (não top-N mecânico).
+    Define a["ai_score"], a["themes"] e (nos destaques) a["ai_summary_text"];
+    retorna os destaques. Falha graciosamente para o ranking heurístico.
     """
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key or not articles:
@@ -1220,39 +1233,63 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         if isinstance(temas, list):
             candidates[idx]["themes"] = [t for t in dict.fromkeys(temas) if t in THEMES]
 
-    # Destaques: PREFERÊNCIA ABSOLUTA por imprensa indiana, por nota da IA.
-    # Só veículos indianos RECONHECIDOS (não "presumidos"): evita que um site
-    # brasileiro/estrangeiro desconhecido — rotulado como indiano nas buscas
-    # temáticas — apareça nos Destaques.
-    indian_scored = [a for a in candidates
-                     if "ai_score" in a and a["themes"] and is_indian(a["source"])]
-    # nota da IA primeiro; entre notas próximas, preferência ao veículo grande.
-    indian_scored.sort(key=lambda a: (a["ai_score"], a["priority"]), reverse=True)
-    highlights = indian_scored[:8]
+    # Só imprensa indiana RECONHECIDA (não "presumida") com tema válido.
+    scored = [a for a in candidates
+              if "ai_score" in a and a["themes"] and is_indian(a["source"])]
+    scored.sort(key=lambda a: (a["ai_score"], a["priority"]), reverse=True)
 
-    # ---- Chamada 2: RESUMOS em PT apenas para os Destaques ----
-    n_resumos = 0
-    if highlights:
-        hl_listing = "\n".join(
-            f'{i}: "{a["title"]}" — {a["source"]}' for i, a in enumerate(highlights)
-        )
-        prompt_sum = (
-            "Resuma cada manchete indiana abaixo em 1 frase em português "
-            "(máx. 160 caracteres), factual e objetiva.\n\n"
-            'Responda APENAS em JSON: {"resumos": {"<i>": "<resumo>"}}.\n\n'
-            f"{hl_listing}"
+    # ---- Chamada 2: CURADORIA EDITORIAL dos Destaques ----
+    # Em vez de pegar mecanicamente o top-N por nota (o que faria toda matéria
+    # de Brasil dominar), a IA atua como editor e SELECIONA, com diversidade e
+    # juízo de importância. Pool diverso: top global + alguns de cada tema.
+    pool: list[dict] = []
+    pool_ids: set[int] = set()
+
+    def _pool(a: dict) -> None:
+        if id(a) not in pool_ids:
+            pool_ids.add(id(a))
+            pool.append(a)
+
+    for a in scored[:18]:
+        _pool(a)
+    for theme in THEMES:
+        c = 0
+        for a in scored:
+            if theme in a["themes"]:
+                _pool(a)
+                c += 1
+                if c >= 6:
+                    break
+    pool = pool[:44]
+
+    highlights: list[dict] = []
+    if pool:
+        listing = "\n".join(
+            f'{i}: "{a["title"]}" — {a["source"]} [{", ".join(a["themes"])}]'
+            + (f' :: {a["summary"][:180]}' if a["summary"] else "")
+            for i, a in enumerate(pool)
         )
         try:
-            res = _gemini_call(prompt_sum, api_key, model, 4096)
-            for k, v in (res.get("resumos", {}) or {}).items():
-                idx = int(k)
-                if 0 <= idx < len(highlights) and isinstance(v, str) and v.strip():
-                    highlights[idx]["ai_summary_text"] = v.strip()
-                    n_resumos += 1
-        except Exception as exc:  # noqa: BLE001 — destaques ficam sem resumo PT
-            print(f"  ! Gemini (resumos) indisponível ({str(exc)[:60]})")
+            res = _gemini_call(EDITOR_PROMPT + listing, api_key, model, 4096)
+            chosen: set[int] = set()
+            for d in (res.get("destaques", []) or [])[:9]:
+                try:
+                    i = int(d.get("i"))
+                except (TypeError, ValueError):
+                    continue
+                if 0 <= i < len(pool) and i not in chosen:
+                    chosen.add(i)
+                    art = pool[i]
+                    resumo = d.get("resumo")
+                    if isinstance(resumo, str) and resumo.strip():
+                        art["ai_summary_text"] = resumo.strip()
+                    highlights.append(art)
+        except Exception as exc:  # noqa: BLE001 — fallback: top por nota
+            print(f"  ! Gemini (curadoria) falhou ({str(exc)[:60]}) — top por nota")
+    if not highlights:
+        highlights = scored[:8]
 
-    print(f"  ✓ Gemini: {n_scored} matérias pontuadas, {len(highlights)} destaques, {n_resumos} resumos PT")
+    print(f"  ✓ Gemini: {n_scored} matérias pontuadas, {len(highlights)} destaques curados")
     return highlights
 
 
