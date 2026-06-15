@@ -665,6 +665,55 @@ def render_html(payload: dict) -> str:
     )
 
 
+def render_diag(diag: dict, themes: dict) -> str:
+    """Página de diagnóstico/log do run (para auditar a curadoria e melhorar)."""
+    def esc(s):
+        return html.escape(str(s), quote=True)
+
+    def li_articles(items):
+        out = []
+        for a in items:
+            sc = a["score"] if a["score"] is not None else "—"
+            tg = ", ".join(a["temas"])
+            res = f' <span class="r">— {esc(a["resumo"])}</span>' if a["resumo"] else ""
+            out.append(f'<li><b>{esc(sc)}</b> · {esc(a["fonte"])} · <span class="t">{esc(tg)}</span><br>{esc(a["titulo"])}{res}</li>')
+        return "".join(out) or "<li>(vazio)</li>"
+
+    feeds_rows = "".join(
+        f'<tr class="{"ok" if f["ok"] else "fail"}"><td>{esc(f["feed"])}</td>'
+        f'<td>{"ok" if f["ok"] else "sem resposta"}</td>'
+        f'<td>{f["itens"]}</td><td>{f["mantidas"]}</td></tr>'
+        for f in diag["feeds"]
+    )
+    secs = "".join(
+        f'<h3>{esc(themes[k]["icon"])} {esc(themes[k]["label"])}</h3><ol class="arts">{li_articles(v)}</ol>'
+        for k, v in diag["secoes"].items() if v
+    )
+    t = diag["totais"]; ia = diag["ia"]
+    return f"""<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagnóstico do run — {esc(diag["gerado"])}</title>
+<style>
+ body{{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:1000px;margin:0 auto;padding:20px;background:#0e1117;color:#e6edf3;line-height:1.5}}
+ h1{{font-size:20px}} h2{{font-size:16px;margin-top:28px;border-bottom:1px solid #232a35;padding-bottom:6px}}
+ h3{{font-size:14px;margin:16px 0 6px;color:#9aa4b2}}
+ .box{{background:#161b22;border:1px solid #232a35;border-radius:10px;padding:12px 16px;margin:10px 0}}
+ table{{width:100%;border-collapse:collapse;font-size:13px}} td,th{{text-align:left;padding:4px 8px;border-bottom:1px solid #232a35}}
+ tr.fail{{color:#f87171}} ol.arts,ul{{padding-left:20px;font-size:13px}} li{{margin:6px 0}}
+ .t{{color:#6c8cff}} .r{{color:#9aa4b2}} a{{color:#58a6ff}}
+</style></head><body>
+<h1>🔎 Diagnóstico do run · {esc(diag["gerado"])}</h1>
+<div class="box">Janela: <b>{t and esc(diag["janela_h"])}h</b> · Matérias: <b>{esc(t["materias"])}</b> ·
+ Fontes: <b>{esc(t["fontes"])}</b> · IA: <b>{"curadoria ativa" if ia["curadoria"] else "heurístico (sem IA)"}</b> ·
+ Pontuadas pela IA: <b>{esc(ia["pontuadas"])}</b> · Removidas (recategorização): <b>{esc(t["removidas_recategorizacao"])}</b>
+ · <a href="index.html">← painel</a> · <a href="diag.json">JSON</a></div>
+<h2>✨ Destaques escolhidos (curadoria)</h2><ol class="arts">{li_articles(diag["destaques"])}</ol>
+<h2>📊 Topo por seção</h2>{secs}
+<h2>📡 Feeds ({sum(1 for f in diag["feeds"] if f["ok"])}/{len(diag["feeds"])} responderam)</h2>
+<div class="box"><table><tr><th>Feed</th><th>status</th><th>itens</th><th>mantidas</th></tr>{feeds_rows}</table></div>
+</body></html>"""
+
+
 TEMPLATE = r"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -844,7 +893,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 
 <footer>
   <div class="wrap">
-    <div>Gerado automaticamente via GitHub Actions • As manchetes e resumos são exibidos no idioma original (inglês).</div>
+    <div>Gerado automaticamente via GitHub Actions • As manchetes e resumos são exibidos no idioma original (inglês). • <a href="diag.html" style="color:inherit;text-decoration:underline">🔎 diagnóstico do run</a></div>
     <div id="sources-list"></div>
   </div>
 </footer>
@@ -1386,14 +1435,17 @@ def main() -> int:
     with ThreadPoolExecutor(max_workers=12) as ex:
         raws = list(ex.map(lambda f: fetch(f["url"]), feeds))
 
+    feed_stats: list[dict] = []  # diagnóstico por feed (para o log)
     for feed, raw in zip(feeds, raws):
         name = feed["name"]
         hint = feed.get("themes", [])
         outlet_default = name.split(" — ")[0]  # ex.: "The Hindu", "Google News"
         print(f"- {name}")
         if not raw:
+            feed_stats.append({"feed": name, "ok": False, "itens": 0, "mantidas": 0})
             continue
         parsed = parse_feed(raw, name)
+        _kept_before = len(articles)
         for item in parsed:
             # Nome do veículo: usa o <source> (Google News) quando houver,
             # senão o nome-base do feed.
@@ -1460,6 +1512,8 @@ def main() -> int:
             ok_sources.add(outlet)
             articles.append(article)
             seen_clusters.append({"tokens": tok, "article": article})
+        feed_stats.append({"feed": name, "ok": True, "itens": len(parsed),
+                           "mantidas": len(articles) - _kept_before})
 
     # Ranking heurístico de relevância (determinístico, sem IA). Pondera tema
     # (foco da Embaixada: Brasil ≫ BRICS > política internacional > demais),
@@ -1500,8 +1554,9 @@ def main() -> int:
     # removê-las limpa os falsos positivos (ex.: "óleo quente" em Energia).
     before = len(articles)
     articles = [a for a in articles if a["themes"]]
-    if before != len(articles):
-        print(f"  [diag] removidas por recategorização da IA: {before - len(articles)}")
+    n_removed_recat = before - len(articles)
+    if n_removed_recat:
+        print(f"  [diag] removidas por recategorização da IA: {n_removed_recat}")
 
     # Garantia: matéria que cita grande empresa brasileira SEMPRE tem tag
     # 'brasil' (e em destaque, como tema principal) — mesmo que a IA não inclua.
@@ -1562,11 +1617,33 @@ def main() -> int:
         "highlights": highlights,
     }
 
+    # ---- Log/diagnóstico do run (para ver o "loop" e melhorar) ----
+    def _slim(a):
+        return {"titulo": a["title"], "fonte": a["source"],
+                "score": a.get("ai_score"), "temas": a["themes"],
+                "resumo": a.get("ai_summary_text", "")}
+    diag = {
+        "gerado": generated_label,
+        "janela_h": window_h,
+        "ia": {"curadoria": ai_curated,
+               "pontuadas": sum(1 for a in articles if "ai_score" in a)},
+        "totais": {"materias": len(articles), "fontes": len(ok_sources),
+                   "removidas_recategorizacao": n_removed_recat},
+        "feeds": feed_stats,
+        "destaques": [_slim(a) for a in highlights],
+        "secoes": {k: [_slim(a) for a in articles if k in a["themes"]][:8]
+                   for k in THEMES},
+    }
+
     os.makedirs(out_dir, exist_ok=True)
     with open(os.path.join(out_dir, "index.html"), "w", encoding="utf-8") as fh:
         fh.write(render_html(payload))
     with open(os.path.join(out_dir, "data.json"), "w", encoding="utf-8") as fh:
         json.dump(payload, fh, ensure_ascii=False, indent=2)
+    with open(os.path.join(out_dir, "diag.json"), "w", encoding="utf-8") as fh:
+        json.dump(diag, fh, ensure_ascii=False, indent=2)
+    with open(os.path.join(out_dir, "diag.html"), "w", encoding="utf-8") as fh:
+        fh.write(render_diag(diag, THEMES))
 
     print(f"\n✔ {len(articles)} matérias de {len(ok_sources)} fontes → {out_dir}/index.html")
     return 0
