@@ -54,7 +54,7 @@ FEEDS = [
     {"name": "Google News — C&T", "url": "https://news.google.com/rss/search?q=India+(ISRO+OR+semiconductor+OR+%22artificial+intelligence%22+OR+%22space+mission%22+OR+startup+OR+innovation+OR+DRDO)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["cti"], "scope_india": True},
     {"name": "Google News — C&T", "url": "https://news.google.com/rss/search?q=India+(%22digital+public+infrastructure%22+OR+%22quantum+computing%22+OR+supercomputer+OR+agritech+OR+healthtech+OR+biotechnology+OR+%22deep+tech%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["cti"], "scope_india": True},
     {"name": "Google News — Mineração", "url": "https://news.google.com/rss/search?q=India+(%22critical+minerals%22+OR+%22rare+earths%22+OR+%22rare+earth%22+OR+lithium+OR+cobalt+OR+%22mineral+exploration%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["energia"], "scope_india": True},
-    {"name": "Google News — Clima", "url": "https://news.google.com/rss/search?q=India+(%22climate+change%22+OR+emissions+OR+%22net+zero%22+OR+pollution+OR+biodiversity+OR+%22COP30%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["clima"], "scope_india": True},
+    {"name": "Google News — Clima", "url": "https://news.google.com/rss/search?q=India+(%22climate+change%22+OR+emissions+OR+pollution+OR+%22water+dispute%22+OR+%22National+Green+Tribunal%22+OR+groundwater+OR+deforestation+OR+%22environment+ministry%22+OR+monsoon+OR+flood)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["clima"], "scope_india": True},
     # Análise / reflexão estratégica (geopolítica e geoeconômica)
     {"name": "Google News — Análise estratégica", "url": "https://news.google.com/rss/search?q=India+(geopolitics+OR+geoeconomic+OR+geo-economic+OR+%22strategic+autonomy%22+OR+%22world+order%22+OR+%22great+power%22+OR+doctrine)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["opiniao"], "scope_india": True},
     {"name": "Google News — Defesa", "url": "https://news.google.com/rss/search?q=India+(defence+OR+military+OR+%22fighter+jet%22+OR+DRDO+OR+missile+OR+%22armed+forces%22+OR+warship+OR+%22air+force%22)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["defesa"], "scope_india": True},
@@ -288,15 +288,26 @@ THEMES = {
     },
     "clima": {
         "label": "Mudanças climáticas e meio ambiente",
-        "desc": "Clima, meio ambiente e sustentabilidade",
+        "desc": "Clima, meio ambiente, recursos naturais e políticas/disputas ambientais",
         "color": "#0891b2",
         "icon": "🌱",
         "keywords": [
-            "climate", "climate change", "environment", "environmental",
-            "emission", "carbon", "pollution", "monsoon", "biodiversity",
-            "forest", "wildlife", "cop29", "cop30", "sustainability",
-            "net zero", "global warming", "deforestation", "air quality",
-            "drought", "cyclone", "heatwave", "green energy", "renewable energy",
+            # clima e eventos
+            "climate", "climate change", "global warming", "monsoon",
+            "rainfall", "extreme weather", "ocean temperature", "sea level",
+            "glacier", "flood", "floods", "drought", "cyclone", "heatwave",
+            "el nino", "la nina", "air quality", "emission", "carbon",
+            "net zero", "cop29", "cop30",
+            # meio ambiente e recursos naturais
+            "environment", "environmental", "pollution", "biodiversity",
+            "forest", "deforestation", "wildlife", "wetland", "mangrove",
+            "groundwater", "water scarcity", "water crisis", "river water",
+            "water dispute", "river pollution", "ganga", "cauvery",
+            "sustainability", "conservation",
+            # políticas e disputas jurídicas ambientais
+            "environment ministry", "environmental policy",
+            "environmental clearance", "national green tribunal",
+            "green tribunal", "environmental law",
         ],
     },
     "opiniao": {
@@ -1204,7 +1215,10 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         "nuclear (energia), biocombustíveis, mineração, minerais críticos e "
         "terras raras; cti = ciência, tecnologia, espaço, inovação, IA, "
         "semicondutores, quântica, supercomputação, DPI, biotech, agritech, "
-        "healthtech; clima = clima e meio ambiente; "
+        "healthtech; clima = mudanças climáticas e eventos (monção, temperatura "
+        "do oceano, enchentes, seca), meio ambiente, recursos naturais (água, "
+        "rios, florestas) e políticas/disputas jurídicas ambientais (ex.: "
+        "Tribunal Verde Nacional/NGT); "
         "opiniao = artigo de OPINIÃO, análise, editorial, coluna ou reflexão "
         "estratégica (use EM ADIÇÃO ao(s) tema(s) factual(is), quando o texto "
         "for analítico/opinativo, não uma notícia factual).\n\n"
