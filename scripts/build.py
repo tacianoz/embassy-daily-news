@@ -70,7 +70,14 @@ FEEDS = [
     {"name": "The Hindu — Energia e Meio Ambiente", "url": "https://www.thehindu.com/sci-tech/energy-and-environment/feeder/default.rss", "themes": ["energia", "clima"]},
     {"name": "The Hindu — Opinião (Lead)", "url": "https://www.thehindu.com/opinion/lead/feeder/default.rss", "themes": ["opiniao"]},
     {"name": "The Hindu — Opinião (Op-Ed)", "url": "https://www.thehindu.com/opinion/op-ed/feeder/default.rss", "themes": ["opiniao"]},
+    {"name": "The Hindu — Editorial", "url": "https://www.thehindu.com/opinion/editorial/feeder/default.rss", "themes": ["opiniao"]},
+    {"name": "The Hindu — Colunas", "url": "https://www.thehindu.com/opinion/columns/feeder/default.rss", "themes": ["opiniao"]},
     {"name": "Indian Express — Opinião", "url": "https://indianexpress.com/section/opinion/feed/", "themes": ["opiniao"]},
+    {"name": "Indian Express — Explained", "url": "https://indianexpress.com/section/explained/feed/", "themes": ["opiniao"]},
+    {"name": "Hindustan Times — Opinião", "url": "https://www.hindustantimes.com/feeds/rss/opinion/rssfeed.xml", "themes": ["opiniao"]},
+    {"name": "Economic Times — Opinião", "url": "https://economictimes.indiatimes.com/opinion/rssfeeds/897228639.cms", "themes": ["opiniao"]},
+    {"name": "Livemint — Opinião", "url": "https://www.livemint.com/rss/opinion", "themes": ["opiniao"]},
+    {"name": "Times of India — Opinião", "url": "https://timesofindia.indiatimes.com/rssfeeds/784865811.cms", "themes": ["opiniao"]},
 
     # The Indian Express
     {"name": "Indian Express — Índia", "url": "https://indianexpress.com/section/india/feed/", "themes": []},
@@ -1018,6 +1025,13 @@ TEMPLATE = r"""<!DOCTYPE html>
           (a.themes[0] === 'brasil' && activeThemes.has(a.themes[1])) ? 0
           : activeThemes.has(a.themes[0]) ? 1 : 2;
         list.sort((x, y) => srank(x) - srank(y));
+        // Seção Opiniões: análises estratégicas/geopolíticas e de política e
+        // economia indianas no topo (não opiniões sobre temas leves).
+        if (activeThemes.has('opiniao')) {
+          const STRAT = new Set(['politica_externa', 'politica_interna', 'economia', 'brics', 'brasil', 'defesa']);
+          list.sort((x, y) =>
+            (y.themes.some(t => STRAT.has(t)) ? 1 : 0) - (x.themes.some(t => STRAT.has(t)) ? 1 : 0));
+        }
       } else {
         // "Todos": matérias com a tag Brasil primeiro
         list.sort((x, y) => (y.themes.includes('brasil') ? 1 : 0) - (x.themes.includes('brasil') ? 1 : 0));
