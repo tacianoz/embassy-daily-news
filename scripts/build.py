@@ -166,7 +166,7 @@ THEMES = {
     },
     "politica_externa": {
         "label": "Política internacional",
-        "desc": "Diplomacia e relações internacionais",
+        "desc": "Relações internacionais da Índia e política mundial",
         "color": "#3d4eac",
         "icon": "🌐",
         "keywords": [
@@ -1300,11 +1300,15 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         "Temas válidos (use estas CHAVES exatas):\n"
         "  brasil = menções ao Brasil OU a temas muito próximos do Brasil "
         "(América Latina, Mercosul, América do Sul, CELAC); brics = BRICS; "
-        "politica_externa = política externa/relações internacionais da Índia; "
+        "politica_externa = POLÍTICA INTERNACIONAL: relações internacionais da "
+        "Índia E política, eleições e assuntos de OUTROS países / cenário global "
+        "(ex.: eleição na Colômbia, política dos EUA, União Europeia); "
         "defesa = defesa, forças armadas, indústria bélica, aeronaves e navios "
         "militares, mísseis, exportações/negócios de defesa (Embraer, Taurus, "
         "CBC, Gripen, Rafale, BrahMos, etc.); "
-        "politica_interna = política doméstica indiana; economia = economia/"
+        "politica_interna = política DOMÉSTICA DA ÍNDIA APENAS (governo, "
+        "parlamento, eleições e partidos INDIANOS) — NÃO use para política de "
+        "outros países (isso é politica_externa); economia = economia/"
         "mercados/comércio; energia = petróleo, gás, eletricidade, renováveis, "
         "nuclear (energia), biocombustíveis, mineração, minerais críticos e "
         "terras raras; cti = ciência, tecnologia, espaço, inovação, IA, "
