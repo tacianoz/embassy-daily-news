@@ -691,9 +691,10 @@ def render_html(payload: dict, day_menu: list[dict] | None = None) -> str:
         f'    .t-{k} {{ --tc: {v["color"]}; }}' for k, v in THEMES.items()
     )
 
-    # Menuzinho de dias (Hoje / Ontem / Anteontem) — só aparece com >1 dia
+    # Menuzinho de dias (Hoje / Ontem / Anteontem) — aparece já no 1º dia
+    # (só "Hoje") e cresce conforme o histórico acumula.
     menu_html = ""
-    if day_menu and len(day_menu) > 1:
+    if day_menu:
         links = "".join(
             f'<a class="day{" active" if d["active"] else ""}" href="{d["file"]}">{html.escape(d["label"])}</a>'
             for d in day_menu)
