@@ -166,7 +166,7 @@ THEMES = {
     },
     "politica_externa": {
         "label": "Política internacional",
-        "desc": "Diplomacia e relações internacionais",
+        "desc": "Diplomacia, relações internacionais e política de outros países",
         "color": "#3d4eac",
         "icon": "🌐",
         "keywords": [
@@ -211,12 +211,13 @@ THEMES = {
         "icon": "🏛️",
         "keywords": [
             "parliament", "lok sabha", "rajya sabha", "bjp", "congress party",
-            "modi government", "pm modi", "election", "by election", "cabinet",
+            "modi government", "pm modi", "cabinet",
             "supreme court", "high court", "opposition", "rahul gandhi",
             "governance", "chief minister", "legislation", "no confidence",
             "coalition", "home ministry", "amit shah", "assembly polls",
+            "assembly election", "lok sabha election", "general election",
             "narendra modi", "central government", "state government",
-            "union minister", "aam aadmi party", "electoral", "ruling party",
+            "union minister", "aam aadmi party", "ruling party",
         ],
     },
     "economia": {
@@ -1300,11 +1301,16 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         "Temas válidos (use estas CHAVES exatas):\n"
         "  brasil = menções ao Brasil OU a temas muito próximos do Brasil "
         "(América Latina, Mercosul, América do Sul, CELAC); brics = BRICS; "
-        "politica_externa = política externa/relações internacionais da Índia; "
+        "politica_externa = política externa/relações internacionais da Índia E "
+        "TAMBÉM política, eleições e governo de QUALQUER país que NÃO seja a "
+        "Índia (ex.: eleição presidencial na Colômbia, política nos EUA, "
+        "governo da Argentina) — ou seja, política INTERNACIONAL; "
         "defesa = defesa, forças armadas, indústria bélica, aeronaves e navios "
         "militares, mísseis, exportações/negócios de defesa (Embraer, Taurus, "
         "CBC, Gripen, Rafale, BrahMos, etc.); "
-        "politica_interna = política doméstica indiana; economia = economia/"
+        "politica_interna = política doméstica DA ÍNDIA APENAS (eleições, "
+        "parlamento, partidos e governo INDIANOS). NUNCA use para política ou "
+        "eleições de OUTROS países — isso é politica_externa; economia = economia/"
         "mercados/comércio; energia = petróleo, gás, eletricidade, renováveis, "
         "nuclear (energia), biocombustíveis, mineração, minerais críticos e "
         "terras raras; cti = ciência, tecnologia, espaço, inovação, IA, "
