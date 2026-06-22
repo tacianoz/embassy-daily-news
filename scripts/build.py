@@ -211,12 +211,13 @@ THEMES = {
         "icon": "🏛️",
         "keywords": [
             "parliament", "lok sabha", "rajya sabha", "bjp", "congress party",
-            "modi government", "pm modi", "election", "by election", "cabinet",
+            "modi government", "pm modi", "cabinet",
             "supreme court", "high court", "opposition", "rahul gandhi",
             "governance", "chief minister", "legislation", "no confidence",
             "coalition", "home ministry", "amit shah", "assembly polls",
+            "assembly election", "lok sabha election", "general election",
             "narendra modi", "central government", "state government",
-            "union minister", "aam aadmi party", "electoral", "ruling party",
+            "union minister", "aam aadmi party", "ruling party",
         ],
     },
     "economia": {
