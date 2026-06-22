@@ -676,7 +676,7 @@ def classify(item: dict, hint_themes: list[str]) -> list[str]:
 # --------------------------------------------------------------------------- #
 # Geração do HTML
 # --------------------------------------------------------------------------- #
-def render_html(payload: dict) -> str:
+def render_html(payload: dict, day_menu: list[dict] | None = None) -> str:
     theme_meta = {k: {"label": v["label"], "desc": v["desc"],
                       "color": v["color"], "icon": v["icon"]}
                   for k, v in THEMES.items()}
@@ -691,9 +691,17 @@ def render_html(payload: dict) -> str:
         f'    .t-{k} {{ --tc: {v["color"]}; }}' for k, v in THEMES.items()
     )
 
-    return TEMPLATE.replace("/*THEME_CSS*/", theme_css).replace(
-        "/*DATA_JSON*/", data_json
-    )
+    # Menuzinho de dias (Hoje / Ontem / Anteontem) — só aparece com >1 dia
+    menu_html = ""
+    if day_menu and len(day_menu) > 1:
+        links = "".join(
+            f'<a class="day{" active" if d["active"] else ""}" href="{d["file"]}">{html.escape(d["label"])}</a>'
+            for d in day_menu)
+        menu_html = f'<div class="daymenu">{links}</div>'
+
+    return (TEMPLATE.replace("/*THEME_CSS*/", theme_css)
+            .replace("<!--DAY_MENU-->", menu_html)
+            .replace("/*DATA_JSON*/", data_json))
 
 
 def render_diag(diag: dict, themes: dict) -> str:
@@ -786,6 +794,11 @@ TEMPLATE = r"""<!DOCTYPE html>
   .subtitle { margin: 5px 0 0; color: rgba(255,255,255,.82); font-weight: 500; }
   .stats { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 16px; font-size: 13px; color: rgba(255,255,255,.78); }
   .stats b { color: #fff; }
+  .daymenu { display: flex; gap: 6px; margin-top: 12px; }
+  .daymenu .day { text-decoration: none; color: rgba(255,255,255,.85);
+    border: 1px solid rgba(255,255,255,.25); border-radius: 999px;
+    padding: 4px 12px; font-size: 12.5px; font-weight: 700; }
+  .daymenu .day.active { background: #fff; color: #15224c; border-color: #fff; }
 
   .controls { position: sticky; top: 0; z-index: 20; background: var(--bg);
     border-bottom: 1px solid var(--line); padding: 12px 0; backdrop-filter: blur(6px); }
@@ -900,6 +913,7 @@ TEMPLATE = r"""<!DOCTYPE html>
       <span><b id="stat-sources">0</b> fontes</span>
       <span>Atualizado em <b id="stat-updated">—</b></span>
     </div>
+    <!--DAY_MENU-->
   </div>
 </header>
 
@@ -1723,8 +1737,55 @@ def main() -> int:
     }
 
     os.makedirs(out_dir, exist_ok=True)
-    with open(os.path.join(out_dir, "index.html"), "w", encoding="utf-8") as fh:
-        fh.write(render_html(payload))
+
+    # ---- Histórico rolante de 3 dias (Hoje / Ontem / Anteontem) ----
+    # Cada dia é uma página estática autocontida; o menuzinho são apenas links
+    # entre elas. Os snapshots ficam em history/ (versionado no repositório),
+    # preservados entre execuções pelo passo de commit do workflow.
+    hist_dir = os.environ.get("HISTORY_DIR", "history")
+    today_str = now.astimezone(IST).strftime("%Y-%m-%d")
+    os.makedirs(hist_dir, exist_ok=True)
+    with open(os.path.join(hist_dir, f"data-{today_str}.json"), "w", encoding="utf-8") as fh:
+        json.dump(payload, fh, ensure_ascii=False)
+
+    # Mantém só os 3 snapshots mais recentes; poda os mais antigos.
+    snaps = []
+    for fn in os.listdir(hist_dir):
+        m = re.fullmatch(r"data-(\d{4}-\d{2}-\d{2})\.json", fn)
+        if m:
+            snaps.append((m.group(1), os.path.join(hist_dir, fn)))
+    snaps.sort(reverse=True)
+    for _, path in snaps[3:]:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+    snaps = snaps[:3]
+
+    # Monta o menu (rótulos relativos ao dia atual em Nova Délhi) e renderiza
+    # uma página por dia disponível.
+    today_ist = now.astimezone(IST).date()
+    _rel = {0: "Hoje", 1: "Ontem", 2: "Anteontem"}
+    day_menu = []
+    for date_str, path in snaps:
+        d = datetime.strptime(date_str, "%Y-%m-%d").date()
+        rel = _rel.get((today_ist - d).days)
+        label = f"{rel} ({d.strftime('%d/%m')})" if rel else d.strftime("%d/%m")
+        fname = "index.html" if date_str == today_str else f"h-{date_str}.html"
+        day_menu.append({"label": label, "file": fname,
+                         "_path": path, "_date": date_str})
+
+    for d in day_menu:
+        if d["_date"] == today_str:
+            page_payload = payload
+        else:
+            with open(d["_path"], encoding="utf-8") as fh:
+                page_payload = json.load(fh)
+        # Menu específico da página: a aba ativa é o dia que está sendo renderizado.
+        page_menu = [{**m, "active": m["_date"] == d["_date"]} for m in day_menu]
+        with open(os.path.join(out_dir, d["file"]), "w", encoding="utf-8") as fh:
+            fh.write(render_html(page_payload, page_menu))
+
     with open(os.path.join(out_dir, "data.json"), "w", encoding="utf-8") as fh:
         json.dump(payload, fh, ensure_ascii=False, indent=2)
     with open(os.path.join(out_dir, "diag.json"), "w", encoding="utf-8") as fh:

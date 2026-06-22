@@ -106,5 +106,19 @@ com o ranking heurístico.
 | `MAX_AGE_DAYS` | — | Janela rolante em dias (testes); sem ela, valem as últimas 24 horas |
 | `FEEDS_OVERRIDE` | — | JSON de feeds para teste local |
 | `MIN_ARTICLES` | `30` (`0` em teste) | Piso de matérias: abaixo disso o build aborta sem publicar, preservando a edição anterior |
+| `HISTORY_DIR` | `history` | Pasta versionada com os snapshots diários (menu Hoje/Ontem/Anteontem) |
 | `GEMINI_API_KEY` | — | Ativa a camada de IA (ranqueamento/destaques/resumos) |
 | `GEMINI_MODEL` | `gemini-2.5-flash` | Modelo da camada de IA |
+
+## Histórico de 3 dias (Hoje / Ontem / Anteontem)
+
+O cabeçalho traz um menuzinho com as edições dos **últimos 3 dias**. Cada dia é
+uma página estática autocontida (`index.html` = hoje; `h-AAAA-MM-DD.html` = dias
+anteriores) e o menu são apenas links entre elas. A cada execução o build:
+
+1. salva o snapshot do dia em `history/data-AAAA-MM-DD.json` (versionado);
+2. mantém só os **3 snapshots mais recentes** (poda os demais);
+3. renderiza uma página por dia e o menu correspondente.
+
+O passo *"Persistir histórico"* do workflow faz commit da pasta `history/` para
+que os snapshots sobrevivam entre execuções (exige `permissions: contents: write`).

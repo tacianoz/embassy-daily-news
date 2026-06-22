@@ -11,9 +11,9 @@ on:
       - "scripts/**"
       - ".github/workflows/daily.yml"
 
-# Permissões necessárias para publicar no GitHub Pages
+# Permissões: publicar no GitHub Pages + versionar o histórico de 3 dias
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -47,6 +47,18 @@ jobs:
           # heurístico (fallback automático).
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-2.5-flash
+
+      # Persiste os snapshots de history/ para que o menu de 3 dias (Hoje /
+      # Ontem / Anteontem) sobreviva entre execuções. Não falha o build se o
+      # push não rolar (ex.: concorrência) — history/ não dispara o workflow.
+      - name: Persistir histórico (3 dias)
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add history/
+          git diff --cached --quiet || git commit -m "Histórico: snapshot diário do dashboard"
+          git push
 
       - name: Configurar Pages
         uses: actions/configure-pages@v5
