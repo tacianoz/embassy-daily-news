@@ -1,9 +1,13 @@
 name: Atualização diária do dashboard
 
 on:
-  # Disparo diário é feito por um agendador externo (cron-job.org) via API,
-  # chamando este workflow_dispatch — não usamos o schedule do GitHub porque
-  # ele atrasa/pula com frequência.
+  # Disparo principal: agendador externo (cron-job.org) via API, chamando este
+  # workflow_dispatch — é pontual, mas depende de um token que pode expirar.
+  # Por isso mantemos TAMBÉM o schedule nativo do GitHub como REDE DE SEGURANÇA:
+  # ele não usa token e nunca expira (pode atrasar/pular ocasionalmente, mas
+  # garante que o painel não congele se o gatilho externo falhar).
+  schedule:
+    - cron: "30 0 * * *"    # 00:30 UTC diário (backup sem token)
   workflow_dispatch:        # disparo diário (cron-job.org) e execução manual
   push:
     branches: [main]
