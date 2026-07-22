@@ -802,8 +802,9 @@ TEMPLATE = r"""<!DOCTYPE html>
     padding: 4px 12px; font-size: 12.5px; font-weight: 700; }
   .daymenu .day.active { background: #fff; color: #15224c; border-color: #fff; }
 
-  .controls { position: sticky; top: 0; z-index: 20; background: var(--bg);
-    border-bottom: 1px solid var(--line); padding: 12px 0; backdrop-filter: blur(6px); }
+  .controls { position: -webkit-sticky; position: sticky; top: 0; z-index: 50;
+    background: var(--bg); border-bottom: 1px solid var(--line); padding: 12px 0;
+    backdrop-filter: blur(6px); box-shadow: 0 2px 10px rgba(0,0,0,.06); }
   .controls-inner { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
   .search {
     flex: 1 1 240px; min-width: 200px; display: flex; align-items: center; gap: 8px;
@@ -1023,9 +1024,13 @@ TEMPLATE = r"""<!DOCTYPE html>
       }
       updateChips();
       render();
-      // Ao trocar de filtro, volta a rolagem ao topo (importante no mobile,
-      // senão o usuário fica no meio da lista anterior).
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Ao trocar de filtro, volta a rolagem ao topo. Rolagem INSTANTÂNEA
+      // (não 'smooth'): o render() reconstrói a grade e muda a altura da
+      // página no mesmo instante, o que cancela a animação suave no desktop.
+      // Cobre window + documentElement + body por robustez entre navegadores.
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
     });
     return el;
   }
