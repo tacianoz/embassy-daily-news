@@ -868,6 +868,26 @@ TEMPLATE = r"""<!DOCTYPE html>
   .read:hover { text-decoration: underline; }
 
   .empty { text-align: center; color: var(--muted); padding: 60px 20px; }
+
+  /* Narrativas do dia — painéis analíticos de largura total */
+  .narr { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; }
+  .narr-quadro { background: linear-gradient(135deg, #15224c, #24397e); color: #fff;
+    border-radius: var(--radius); padding: 18px 22px; font-size: 15px;
+    line-height: 1.7; box-shadow: var(--shadow); }
+  .narr-quadro .k { font-size: 11px; font-weight: 800; letter-spacing: .8px;
+    text-transform: uppercase; color: rgba(255,255,255,.65); display: block;
+    margin-bottom: 6px; }
+  .narr-card { background: var(--card); border: 1px solid var(--line);
+    border-left: 5px solid var(--nc, #c2185b); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 16px 20px; }
+  .narr-card h3 { margin: 0 0 8px; font-size: 17px; }
+  .narr-card .txt { margin: 0 0 10px; line-height: 1.65; font-size: 14px; }
+  .narr-card .badges { margin-bottom: 10px; }
+  .narr-links { display: flex; flex-direction: column; gap: 5px; font-size: 13px;
+    border-top: 1px dashed var(--line); padding-top: 10px; }
+  .narr-links a { color: var(--muted); text-decoration: none; }
+  .narr-links a:hover { text-decoration: underline; color: var(--ink); }
+  .narr-links .s { font-weight: 600; }
   footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 12.5px; padding: 24px 0 50px; }
   footer .wrap { display: flex; flex-direction: column; gap: 6px; }
 
@@ -960,8 +980,10 @@ TEMPLATE = r"""<!DOCTYPE html>
   const THEMES = DATA.themes;
   const articles = DATA.articles;
   const HL = DATA.highlights || [];
+  const NARR = (DATA.narratives && (DATA.narratives.itens || []).length) ? DATA.narratives : null;
   const hlLinks = new Set(HL.map(a => a.link));
   let inicio = HL.length > 0;            // página inicial = Destaques
+  let narrativas = false;                // aba "Narrativas do dia"
   const activeThemes = new Set();        // temas selecionados (cumulativos)
   let activeSource = 'all';
   let query = '';
@@ -999,9 +1021,10 @@ TEMPLATE = r"""<!DOCTYPE html>
   function updateChips() {
     document.querySelectorAll('.chip').forEach(c => {
       const k = c.dataset.key;
-      const on = k === 'inicio' ? inicio
-        : k === 'all' ? (!inicio && activeThemes.size === 0)
-        : (!inicio && activeThemes.has(k));
+      const on = k === 'inicio' ? (inicio && !narrativas)
+        : k === 'narrativas' ? narrativas
+        : k === 'all' ? (!inicio && !narrativas && activeThemes.size === 0)
+        : (!inicio && !narrativas && activeThemes.has(k));
       c.classList.toggle('active', on);
     });
   }
@@ -1014,10 +1037,11 @@ TEMPLATE = r"""<!DOCTYPE html>
       (color ? '<span class="dot" style="background:' + color + '"></span>' : '') +
       '<span>' + label + '</span><span class="count">' + count + '</span>';
     el.addEventListener('click', () => {
-      if (key === 'inicio') { inicio = true; activeThemes.clear(); }
-      else if (key === 'all') { inicio = false; activeThemes.clear(); }
+      if (key === 'inicio') { inicio = true; narrativas = false; activeThemes.clear(); }
+      else if (key === 'narrativas') { narrativas = true; inicio = false; activeThemes.clear(); }
+      else if (key === 'all') { inicio = false; narrativas = false; activeThemes.clear(); }
       else {
-        inicio = false;
+        inicio = false; narrativas = false;
         // Seleção única: clicar troca o tema; clicar no ativo volta a "Todos".
         if (activeThemes.has(key)) activeThemes.clear();
         else { activeThemes.clear(); activeThemes.add(key); }
@@ -1035,6 +1059,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     return el;
   }
   if (HL.length) chipsEl.appendChild(makeChip('inicio', '🏠 Início', '#c2185b', HL.length));
+  if (NARR) chipsEl.appendChild(makeChip('narrativas', '🧭 Narrativas', '#0f766e', NARR.itens.length));
   chipsEl.appendChild(makeChip('all', 'Todos', '', counts.all));
   for (const k in THEMES) {
     chipsEl.appendChild(makeChip(k, THEMES[k].icon + ' ' + THEMES[k].label, THEMES[k].color, counts[k] || 0));
@@ -1104,12 +1129,39 @@ TEMPLATE = r"""<!DOCTYPE html>
       const k = ch.dataset.key;
       const span = ch.querySelector('.count');
       if (!span) return;
-      span.textContent = k === 'inicio' ? HL.length : (k === 'all' ? c.all : (c[k] || 0));
+      span.textContent = k === 'inicio' ? HL.length
+        : k === 'narrativas' ? (NARR ? NARR.itens.length : 0)
+        : (k === 'all' ? c.all : (c[k] || 0));
     });
   }
 
   function render() {
     updateCounts();
+    if (narrativas && NARR) {
+      // Aba analítica: quadro geral + narrativas com chaves de leitura.
+      // (Visão de síntese — não responde aos filtros de busca/jornal.)
+      viewTitle.innerHTML = '🧭 Narrativas do dia <span class="sec-tag">análise por IA</span>';
+      viewTitle.hidden = false;
+      const nColor = n => (n.temas && n.temas[0] && THEMES[n.temas[0]]) ? THEMES[n.temas[0]].color : '#c2185b';
+      const nBadges = n => (n.temas || []).filter(t => THEMES[t]).map(t =>
+        '<span class="badge" style="--bc:' + THEMES[t].color + '">' + THEMES[t].icon + ' ' + esc(THEMES[t].label) + '</span>').join('');
+      const nLinks = n => (n.materias || []).map(m =>
+        '<a href="' + esc(m.link) + '" target="_blank" rel="noopener">📄 ' + esc(m.title) +
+        ' <span class="s">— ' + esc(m.source) + '</span></a>').join('');
+      grid.innerHTML = '<div class="narr">' +
+        (NARR.quadro ? '<div class="narr-quadro"><span class="k">Quadro geral do dia</span>' + esc(NARR.quadro) + '</div>' : '') +
+        NARR.itens.map(n =>
+          '<div class="narr-card" style="--nc:' + nColor(n) + '">' +
+            '<h3>' + esc(n.titulo) + '</h3>' +
+            '<p class="txt">' + esc(n.texto) + '</p>' +
+            '<div class="badges">' + nBadges(n) + '</div>' +
+            ((n.materias || []).length ? '<div class="narr-links">' + nLinks(n) + '</div>' : '') +
+          '</div>').join('') +
+        '</div>';
+      empty.hidden = true;
+      parseEmoji(grid);
+      return;
+    }
     let list;
     if (inicio) {
       // Página inicial: somente os Destaques do dia (sem misturar o resto)
@@ -1246,6 +1298,35 @@ EDITOR_PROMPT = (
 )
 
 
+NARRATIVES_PROMPT = (
+    DIPLOMAT_PERSONA + "\n\n"
+    "Agora atue como ANALISTA da Embaixada: leia o conjunto de matérias do dia "
+    "e identifique as PRINCIPAIS NARRATIVAS da imprensa indiana hoje — os fios "
+    "condutores que conectam as matérias entre si — com as CHAVES DE LEITURA "
+    "para um diplomata brasileiro.\n"
+    "Devolva:\n"
+    '- "quadro": parágrafo de abertura (2 a 4 frases, em português) com o '
+    "quadro geral do dia: o clima dominante do noticiário indiano e o que mais "
+    "importa para o Brasil hoje.\n"
+    '- "narrativas": de 3 a 6 narrativas, em ordem de importância, cada uma '
+    "com:\n"
+    '  - "titulo": título curto e forte em português (máx. 8 palavras);\n'
+    '  - "texto": 2 a 4 frases em português explicando a narrativa, o que está '
+    "em jogo e a chave de leitura (por que importa e o que observar nos "
+    "próximos dias), mencionando implicações para o Brasil quando existirem;\n"
+    '  - "temas": chaves de tema envolvidas, entre: brasil, brics, '
+    "politica_externa, defesa, politica_interna, economia, energia, cti, "
+    "clima, opiniao;\n"
+    '  - "itens": índices (números) de 2 a 4 matérias da lista que sustentam '
+    "a narrativa.\n"
+    "Tom de nota diplomática: analítico, sóbrio, sem sensacionalismo. Baseie-se "
+    "APENAS nas matérias listadas — não invente fatos.\n"
+    'Responda APENAS em JSON: {"quadro": "...", "narrativas": [{"titulo": '
+    '"...", "texto": "...", "temas": ["..."], "itens": [0, 1]}]}.\n\n'
+    "Matérias do dia:\n"
+)
+
+
 def _gemini_call(prompt: str, api_key: str, model: str, max_tokens: int,
                  retries: int = 2):
     """Chama o Gemini e devolve o JSON da resposta. Tenta de novo com backoff
@@ -1289,20 +1370,22 @@ def _gemini_call(prompt: str, api_key: str, model: str, max_tokens: int,
     raise last_err
 
 
-def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
-    """A IA comanda o ranqueamento e a curadoria. Duas chamadas ao Gemini:
+def gemini_enrich(articles: list[dict], now: datetime) -> tuple[list[dict], dict | None]:
+    """A IA comanda o ranqueamento e a curadoria. Três chamadas ao Gemini:
       1) lê e pontua um conjunto amplo por relevância editorial + recategoriza
          os temas (ordena cada seção);
       2) CURADORIA editorial dos Destaques — seleciona, com juízo de
-         importância e diversidade, lendo as matérias (não top-N mecânico).
+         importância e diversidade, lendo as matérias (não top-N mecânico);
+      3) NARRATIVAS DO DIA — síntese analítica das principais narrativas e
+         chaves de leitura, conectando as matérias (aba própria no painel).
     Define a["ai_score"], a["themes"] e (nos destaques) a["ai_summary_text"];
-    retorna os destaques. Falha graciosamente para o ranking heurístico.
+    retorna (destaques, narrativas). Falha graciosamente para o heurístico.
     """
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key or not articles:
         if not api_key:
             print("  (Gemini desativado: sem GEMINI_API_KEY — usando ranking heurístico)")
-        return []
+        return [], None
     model = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
 
     # Cobertura ampla: topo global + até 40 por tema => a IA pontua (e ordena)
@@ -1393,7 +1476,7 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
                   f"({str(exc)[:60]})")
     if not itens:
         print("  ! Gemini indisponível — usando ranking heurístico")
-        return []
+        return [], None
 
     n_scored = 0
     for k, v in itens.items():
@@ -1473,8 +1556,50 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
     if not highlights:
         highlights = scored[:8]
 
-    print(f"  ✓ Gemini: {n_scored} matérias pontuadas, {len(highlights)} destaques curados")
-    return highlights
+    # ---- Chamada 3: NARRATIVAS DO DIA (síntese analítica) ----
+    # A IA conecta as matérias do pool em narrativas com chaves de leitura;
+    # vira uma aba própria no painel. Falha graciosa: sem narrativas, a aba
+    # simplesmente não aparece.
+    narratives: dict | None = None
+    if pool:
+        listing = "\n".join(
+            f'{i}: "{a["title"]}" — {a["source"]} [{", ".join(a["themes"])}]'
+            + (f' :: {a["summary"][:180]}' if a["summary"] else "")
+            for i, a in enumerate(pool)
+        )
+        try:
+            res = _gemini_call(NARRATIVES_PROMPT + listing, api_key, model, 8192)
+            out = []
+            for n in (res.get("narrativas", []) or [])[:6]:
+                if not isinstance(n, dict):
+                    continue
+                titulo = (n.get("titulo") or "").strip()
+                texto = (n.get("texto") or "").strip()
+                if not titulo or not texto:
+                    continue
+                temas = [t for t in (n.get("temas") or []) if t in THEMES][:4]
+                mats = []
+                for i in (n.get("itens") or [])[:4]:
+                    try:
+                        i = int(i)
+                    except (TypeError, ValueError):
+                        continue
+                    if 0 <= i < len(pool):
+                        a = pool[i]
+                        mats.append({"title": a["title"], "source": a["source"],
+                                     "link": a["link"]})
+                out.append({"titulo": titulo, "texto": texto, "temas": temas,
+                            "materias": mats})
+            if out:
+                quadro = res.get("quadro")
+                narratives = {"quadro": quadro.strip() if isinstance(quadro, str) else "",
+                              "itens": out}
+        except Exception as exc:  # noqa: BLE001 — aba opcional, segue sem ela
+            print(f"  ! Gemini (narrativas) falhou ({str(exc)[:60]})")
+
+    print(f"  ✓ Gemini: {n_scored} matérias pontuadas, {len(highlights)} destaques "
+          f"curados, {len(narratives['itens']) if narratives else 0} narrativas")
+    return highlights, narratives
 
 
 # --------------------------------------------------------------------------- #
@@ -1629,7 +1754,7 @@ def main() -> int:
     # Camada de IA (opcional): nota de relevância p/ a Embaixada + resumos em
     # português + Destaques. Falha graciosamente para o ranking heurístico se a
     # chave/cota do Gemini não estiver disponível.
-    ai_highlights = gemini_enrich(articles, now)
+    ai_highlights, ai_narratives = gemini_enrich(articles, now)
     ai_curated = bool(ai_highlights)
 
     # Garantia: matérias vindas de fontes de opinião/análise mantêm a tag
@@ -1735,6 +1860,7 @@ def main() -> int:
         },
         "articles": articles,
         "highlights": highlights,
+        "narratives": ai_narratives,
     }
 
     # ---- Log/diagnóstico do run (para ver o "loop" e melhorar) ----
@@ -1752,6 +1878,7 @@ def main() -> int:
                    "repeticoes_evento_removidas": n_dup_event},
         "feeds": feed_stats,
         "destaques": [_slim(a) for a in highlights],
+        "narrativas": ai_narratives,
         "secoes": {k: [_slim(a) for a in articles if k in a["themes"]][:8]
                    for k in THEMES},
     }
