@@ -112,7 +112,8 @@ narrativas simplesmente não aparece).
 | `MIN_ARTICLES` | `30` (`0` em teste) | Piso de matérias: abaixo disso o build aborta sem publicar, preservando a edição anterior |
 | `HISTORY_DIR` | `history` | Pasta versionada com os snapshots diários (menu Hoje/Ontem/Anteontem) |
 | `GEMINI_API_KEY` | — | Ativa a camada de IA (ranqueamento/destaques/resumos) |
-| `GEMINI_MODEL` | `gemini-3.6-flash` | Modelo da camada de IA |
+| `GEMINI_MODEL` | `gemini-3.6-flash` | Modelo da camada de IA (pontuação/curadoria) |
+| `GEMINI_MODEL_NARRATIVES` | `gemini-3.5-pro` | Modelo de ponta usado só nas Narrativas do dia (com raciocínio profundo; *fallback* para o `GEMINI_MODEL`) |
 
 ## Histórico de 3 dias (Hoje / Ontem / Anteontem)
 

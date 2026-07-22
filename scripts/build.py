@@ -1330,16 +1330,20 @@ NARRATIVES_PROMPT = (
 
 
 def _gemini_call(prompt: str, api_key: str, model: str, max_tokens: int,
-                 retries: int = 2):
+                 retries: int = 2, deep: bool = False):
     """Chama o Gemini e devolve o JSON da resposta. Tenta de novo com backoff
-    em falhas transitórias (429/5xx/rede/JSON truncado); esgotado, relança."""
-    # "Thinking" mínimo para não gastar tokens à toa nem truncar o JSON. A API
-    # mudou entre gerações: o 2.5 desliga com thinkingBudget=0; o 3.x (3.6 Flash
-    # etc.) não aceita budget e usa thinkingLevel ("low"/"high") — misturar os
-    # dois dá 400. Detecta a versão maior do modelo para escolher o campo certo.
+    em falhas transitórias (429/5xx/rede/JSON truncado); esgotado, relança.
+    deep=True libera raciocínio profundo (para as tarefas analíticas)."""
+    # "Thinking": mínimo nas tarefas em massa (senão gasta tokens e trunca o
+    # JSON); profundo nas analíticas. A API mudou entre gerações: o 2.5 usa
+    # thinkingBudget; o 3.x (3.6 Flash, 3.5 Pro) não aceita budget e usa
+    # thinkingLevel ("low"/"high") — misturar os dois dá 400. Detecta a versão
+    # maior do modelo para escolher o campo certo.
     _mv = re.match(r"gemini-(\d+)", model)
     if _mv and int(_mv.group(1)) >= 3:
-        thinking = {"thinkingLevel": "low"}
+        thinking = {"thinkingLevel": "high" if deep else "low"}
+    elif deep:
+        thinking = {"thinkingBudget": 4096}
     else:
         thinking = {"thinkingBudget": 0}
     body = json.dumps({
@@ -1559,18 +1563,27 @@ def gemini_enrich(articles: list[dict], now: datetime) -> tuple[list[dict], dict
         highlights = scored[:8]
 
     # ---- Chamada 3: NARRATIVAS DO DIA (síntese analítica) ----
-    # A IA conecta as matérias do pool em narrativas com chaves de leitura;
-    # vira uma aba própria no painel. Falha graciosa: sem narrativas, a aba
-    # simplesmente não aparece.
+    # A IA conecta as matérias do pool em narrativas com chaves de leitura.
+    # É UMA chamada por dia, a mais analítica de todas — usa o modelo mais
+    # inteligente (Pro) com raciocínio profundo; se ele falhar (cota/rede),
+    # cai para o modelo padrão. Sem narrativas, o bloco não aparece.
     narratives: dict | None = None
     if pool:
+        model_narr = os.environ.get("GEMINI_MODEL_NARRATIVES", "gemini-3.5-pro")
         listing = "\n".join(
             f'{i}: "{a["title"]}" — {a["source"]} [{", ".join(a["themes"])}]'
             + (f' :: {a["summary"][:180]}' if a["summary"] else "")
             for i, a in enumerate(pool)
         )
         try:
-            res = _gemini_call(NARRATIVES_PROMPT + listing, api_key, model, 8192)
+            try:
+                res = _gemini_call(NARRATIVES_PROMPT + listing, api_key,
+                                   model_narr, 16384, deep=True)
+            except Exception as exc:  # noqa: BLE001 — Pro falhou; usa o padrão
+                print(f"  ! Gemini narrativas com {model_narr} falhou "
+                      f"({str(exc)[:60]}) — tentando {model}")
+                res = _gemini_call(NARRATIVES_PROMPT + listing, api_key,
+                                   model, 8192)
             out = []
             for n in (res.get("narrativas", []) or [])[:6]:
                 if not isinstance(n, dict):
