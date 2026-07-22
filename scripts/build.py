@@ -900,11 +900,12 @@ TEMPLATE = r"""<!DOCTYPE html>
   .nn .sint { font-size: 12.5px; color: var(--muted); font-style: italic;
     margin: 2px 0 4px; }
   .nn .txt { margin: 4px 0 2px; line-height: 1.6; font-size: 13.5px; }
-  .nn .facts { display: grid; gap: 5px 22px; margin: 6px 0 2px;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-  .nn .fact { position: relative; padding-left: 15px; font-size: 13.5px;
-    line-height: 1.5; }
-  .nn .fact::before { content: ""; position: absolute; left: 0; top: .5em;
+  /* Coluna única: leitura de cima para baixo, sem "espalhar" os fatos */
+  .nn .facts { display: flex; flex-direction: column; gap: 7px;
+    margin: 7px 0 2px; max-width: 80ch; }
+  .nn .fact { position: relative; padding-left: 16px; font-size: 13.5px;
+    line-height: 1.55; }
+  .nn .fact::before { content: ""; position: absolute; left: 1px; top: .52em;
     width: 7px; height: 7px; border-radius: 2px; background: var(--nc, #c2185b); }
   .nn .foot { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
   .nn .foot a { font-size: 11px; font-weight: 700; text-decoration: none;
@@ -1381,7 +1382,10 @@ NARRATIVE_REPORT_PROMPT = (
     '- "pontos": 4 a 6 FATOS em bullets telegráficos (máx. 18 palavras cada), '
     "com o máximo de PRECISÃO: quem disse/decidiu, o quê, quando, quanto "
     "(números, valores, datas, nomes de pessoas/empresas/órgãos). É o "
-    "conteúdo inteiro do briefing — priorize os fatos mais estratégicos;\n"
+    "conteúdo inteiro do briefing — priorize os fatos mais estratégicos. "
+    "ORDENE em sequência lógica de leitura: o fato principal primeiro, depois "
+    "seus desdobramentos, depois contexto/reações — fatos do mesmo assunto em "
+    "sequência, SEM alternar entre assuntos;\n"
     '- "extras": índices k dos itens x<n>.<k> da pesquisa adicional que valem '
     "citar como fonte (até 3; só os realmente pertinentes).\n"
     "Baseie-se APENAS no material fornecido — não invente nem extrapole "
