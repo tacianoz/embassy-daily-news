@@ -907,11 +907,15 @@ TEMPLATE = r"""<!DOCTYPE html>
     line-height: 1.55; }
   .nn .fact::before { content: ""; position: absolute; left: 1px; top: .52em;
     width: 7px; height: 7px; border-radius: 2px; background: var(--nc, #c2185b); }
-  .nn .foot { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
-  .nn .foot a { font-size: 11px; font-weight: 700; text-decoration: none;
-    color: var(--muted); border: 1px solid var(--line); border-radius: 999px;
-    padding: 2px 9px; transition: border-color .15s ease, color .15s ease; }
-  .nn .foot a:hover { color: var(--ink); border-color: var(--nc, #999); }
+  /* Fontes: manchete visível (uma por linha, com reticências), sem ter que
+     clicar para descobrir o que é cada link */
+  .nn .foot { display: flex; flex-direction: column; gap: 3px; margin-top: 9px;
+    border-top: 1px dashed var(--line); padding-top: 8px; min-width: 0; }
+  .nn .foot a { font-size: 12px; color: var(--muted); text-decoration: none;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 100%; }
+  .nn .foot a:hover { color: var(--ink); text-decoration: underline; }
+  .nn .foot .s { font-weight: 700; color: var(--nc, #999); }
   @media (max-width: 640px) {
     .nn { grid-template-columns: 1fr; padding-left: 16px; }
     .nn .num { grid-row: auto; font-size: 22px; padding-top: 0; }
@@ -1178,8 +1182,11 @@ TEMPLATE = r"""<!DOCTYPE html>
           (NARR.quadro ? '<div class="narr-quadro"><span class="k">Quadro geral do dia</span>' + esc(NARR.quadro) + '</div>' : '') +
           '</div>');
         parts.push('<div class="narr-list">' + NARR.itens.map((n, ni) => {
+          // Fontes com preview da manchete (senão o leitor tem que clicar
+          // uma a uma para descobrir o que é cada link)
           const pills = (n.materias || []).map(m =>
-            '<a href="' + esc(m.link) + '" target="_blank" rel="noopener" title="' + esc(m.title) + '">' + esc(m.source || 'fonte') + ' ↗</a>').join('');
+            '<a href="' + esc(m.link) + '" target="_blank" rel="noopener">' +
+            '<span class="s">' + esc(m.source || 'fonte') + '</span> · ' + esc(m.title) + '</a>').join('');
           // Briefing: fatos-chave escaneáveis quando o aprofundamento rodou;
           // senão, o texto corrido da identificação (fallback).
           const body = (n.pontos && n.pontos.length)
@@ -1342,7 +1349,13 @@ NARRATIVES_PROMPT = (
     '- "quadro": parágrafo de abertura (2 a 3 frases, em português) FACTUAL '
     "com os principais fatos do dia no noticiário indiano — sem adjetivação "
     "nem leitura interpretativa.\n"
-    '- "narrativas": de 3 a 6 temas, em ordem de importância, cada um com:\n'
+    '- "narrativas": de 3 a 6 temas, ORDENADOS DO MAIS ESTRATÉGICO PARA O '
+    "MENOS, do ponto de vista de um diplomata BRASILEIRO: alta política e "
+    "geoeconomia (Índia–China, Índia–EUA, acordos comerciais, BRICS, defesa, "
+    "energia e minerais críticos, decisões de governo com peso real) vêm "
+    "ANTES de fatos protocolares, cerimoniais ou de menor consequência (ex.: "
+    "a relação Índia–China em alto nível é mais estratégica que um elogio de "
+    "autoridade da ONU à Índia). Cada tema com:\n"
     '  - "titulo": título curto FACTUAL e descritivo em português (máx. 8 '
     "palavras) — descreva o fato central como uma manchete sóbria, NUNCA uma "
     "tese (ex.: 'Índia negocia acordos comerciais com EUA e UE', não 'Índia "
