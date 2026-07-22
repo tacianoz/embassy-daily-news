@@ -881,30 +881,47 @@ TEMPLATE = r"""<!DOCTYPE html>
   .narr-quadro .k { font-size: 11px; font-weight: 800; letter-spacing: .8px;
     text-transform: uppercase; color: rgba(255,255,255,.65); display: block;
     margin-bottom: 6px; }
-  .narr-grid { grid-column: 1 / -1; display: grid; gap: 16px;
-    grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); }
-  .narr-card { background: var(--card); border: 1px solid var(--line);
-    border-top: 4px solid var(--nc, #c2185b); border-radius: var(--radius);
-    box-shadow: var(--shadow); padding: 16px 18px; display: flex;
-    flex-direction: column; gap: 10px; }
-  .narr-card h3 { margin: 0; font-size: 16.5px; line-height: 1.35; }
-  .narr-card .txt { margin: 0; line-height: 1.6; font-size: 13.5px; }
-  .narr-card .badges { margin: 0; }
-  .nn-sint { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted);
-    font-style: italic; }
-  .nn-points { margin: 0; padding: 0; list-style: none; }
-  .nn-points li { padding: 3px 0 3px 18px; position: relative;
-    font-size: 13.5px; line-height: 1.5; }
-  .nn-points li::before { content: "▸"; position: absolute; left: 2px;
-    color: var(--nc, #c2185b); font-weight: 700; }
-  .nn-call { background: rgba(21,34,76,.06); border-left: 3px solid #15224c;
-    padding: 8px 11px; border-radius: 8px; font-size: 12.5px; line-height: 1.55; }
-  .nn-call.br { background: rgba(30,158,62,.09); border-left-color: #1e9e3e; }
-  .nn-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
-  .nn-pills a { font-size: 11.5px; font-weight: 700; text-decoration: none;
+  /* Briefing numerado: número grande na cor do tema, fatos escaneáveis */
+  .narr-list { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; }
+  .nn { background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 16px 20px 14px 18px; display: grid;
+    grid-template-columns: 52px 1fr; column-gap: 14px; row-gap: 2px;
+    position: relative; overflow: hidden; }
+  .nn::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 4px; background: var(--nc, #c2185b); }
+  .nn .num { grid-column: 1; grid-row: 1 / span 8; font-size: 34px;
+    font-weight: 800; color: var(--nc, #c2185b); opacity: .9; line-height: 1;
+    padding-top: 3px; font-variant-numeric: tabular-nums; }
+  .nn > :not(.num) { grid-column: 2; }
+  .nn .head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .nn .head h3 { margin: 0; font-size: 16.5px; line-height: 1.3; }
+  .nn .head .badges { margin: 0; }
+  .nn .sint { font-size: 12.5px; color: var(--muted); font-style: italic;
+    margin: 2px 0 4px; }
+  .nn .txt { margin: 4px 0 2px; line-height: 1.6; font-size: 13.5px; }
+  .nn .facts { display: grid; gap: 5px 22px; margin: 6px 0 2px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .nn .fact { position: relative; padding-left: 15px; font-size: 13.5px;
+    line-height: 1.5; }
+  .nn .fact::before { content: ""; position: absolute; left: 0; top: .5em;
+    width: 7px; height: 7px; border-radius: 2px; background: var(--nc, #c2185b); }
+  .nn .read { margin-top: 7px; font-size: 12.5px; color: var(--muted);
+    line-height: 1.55; }
+  .nn .read b { color: var(--ink); font-weight: 700; }
+  .nn .br-line { margin-top: 7px; font-size: 12.5px; line-height: 1.5;
+    background: linear-gradient(90deg, rgba(30,158,62,.12), rgba(255,210,0,.05) 60%, transparent);
+    border-radius: 8px; padding: 6px 10px; }
+  .nn .foot { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+  .nn .foot a { font-size: 11px; font-weight: 700; text-decoration: none;
     color: var(--muted); border: 1px solid var(--line); border-radius: 999px;
-    padding: 3px 10px; transition: border-color .15s ease, color .15s ease; }
-  .nn-pills a:hover { color: var(--ink); border-color: var(--nc, #999); }
+    padding: 2px 9px; transition: border-color .15s ease, color .15s ease; }
+  .nn .foot a:hover { color: var(--ink); border-color: var(--nc, #999); }
+  @media (max-width: 640px) {
+    .nn { grid-template-columns: 1fr; padding-left: 16px; }
+    .nn .num { grid-row: auto; font-size: 22px; padding-top: 0; }
+    .nn > :not(.num) { grid-column: 1; }
+  }
   footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 12.5px; padding: 24px 0 50px; }
   footer .wrap { display: flex; flex-direction: column; gap: 6px; }
 
@@ -1165,23 +1182,23 @@ TEMPLATE = r"""<!DOCTYPE html>
           '<h2 class="sec-inline">🧭 Narrativas do dia <span class="sec-tag">análise por IA</span></h2>' +
           (NARR.quadro ? '<div class="narr-quadro"><span class="k">Quadro geral do dia</span>' + esc(NARR.quadro) + '</div>' : '') +
           '</div>');
-        parts.push('<div class="narr-grid">' + NARR.itens.map(n => {
+        parts.push('<div class="narr-list">' + NARR.itens.map((n, ni) => {
           const pills = (n.materias || []).map(m =>
             '<a href="' + esc(m.link) + '" target="_blank" rel="noopener" title="' + esc(m.title) + '">' + esc(m.source || 'fonte') + ' ↗</a>').join('');
-          // Relatório estruturado (bullets) quando o aprofundamento rodou;
+          // Briefing: fatos-chave escaneáveis quando o aprofundamento rodou;
           // senão, o texto corrido da identificação (fallback).
           const body = (n.pontos && n.pontos.length)
-            ? '<ul class="nn-points">' + n.pontos.map(p => '<li>' + esc(p) + '</li>').join('') + '</ul>'
+            ? '<div class="facts">' + n.pontos.map(p => '<div class="fact">' + esc(p) + '</div>').join('') + '</div>'
             : (n.texto ? '<p class="txt">' + esc(n.texto) + '</p>' : '');
-          return '<div class="narr-card" style="--nc:' + nColor(n) + '">' +
-            '<h3>' + esc(n.titulo) + '</h3>' +
-            (n.sintese ? '<p class="nn-sint">' + esc(n.sintese) + '</p>' : '') +
+          return '<article class="nn" style="--nc:' + nColor(n) + '">' +
+            '<div class="num">' + String(ni + 1).padStart(2, '0') + '</div>' +
+            '<div class="head"><h3>' + esc(n.titulo) + '</h3><div class="badges">' + nBadges(n) + '</div></div>' +
+            (n.sintese ? '<div class="sint">' + esc(n.sintese) + '</div>' : '') +
             body +
-            (n.leitura ? '<div class="nn-call">💡 ' + esc(n.leitura) + '</div>' : '') +
-            (n.brasil ? '<div class="nn-call br">🇧🇷 ' + esc(n.brasil) + '</div>' : '') +
-            '<div class="badges">' + nBadges(n) + '</div>' +
-            (pills ? '<div class="nn-pills">' + pills + '</div>' : '') +
-          '</div>';
+            (n.leitura ? '<div class="read">💡 <b>Leitura:</b> ' + esc(n.leitura) + '</div>' : '') +
+            (n.brasil ? '<div class="br-line">🇧🇷 ' + esc(n.brasil) + '</div>' : '') +
+            (pills ? '<div class="foot">' + pills + '</div>' : '') +
+          '</article>';
         }).join('') + '</div>');
       }
       if (list.length) {
@@ -1357,22 +1374,27 @@ NARRATIVES_PROMPT = (
 NARRATIVE_REPORT_PROMPT = (
     DIPLOMAT_PERSONA + "\n\n"
     "Você identificou as narrativas do dia e uma PESQUISA ADICIONAL trouxe "
-    "material novo sobre cada uma (itens marcados com x). Agora produza, para "
-    "CADA narrativa, um RELATÓRIO SUCINTO E INTELIGENTE, útil para diplomatas "
-    "— denso em informação e leve em texto (nada de parágrafos longos).\n"
+    "material novo sobre cada uma (itens marcados com x). Produza, para CADA "
+    "narrativa, um BRIEFING para diplomatas.\n"
+    "O OBJETIVO PRINCIPAL É INFORMAR: munir o diplomata dos principais FATOS "
+    "do dia. Fatos primeiro; análise só quando for genuinamente inteligente e "
+    "ancorada nos fatos — nunca análise genérica ou de manual.\n"
     "Para cada narrativa devolva:\n"
     '- "n": o número da narrativa;\n'
     '- "sintese": 1 frase que capture a essência (máx. 140 caracteres);\n'
-    '- "pontos": 2 a 4 fatos-chave em bullets telegráficos (máx. 15 palavras '
-    "cada; use números/datas/nomes concretos do material);\n"
-    '- "leitura": 1-2 frases com a chave de leitura: por que importa e o que '
-    "observar nos próximos dias;\n"
-    '- "brasil": 1 frase com a implicação para o Brasil (SÓ se houver de fato; '
-    "senão omita o campo);\n"
+    '- "pontos": 3 a 5 FATOS-CHAVE em bullets telegráficos (máx. 16 palavras '
+    "cada; com números, datas, nomes e decisões concretas do material — é o "
+    "coração do briefing);\n"
+    '- "leitura": OPCIONAL. 1 frase de leitura analítica em tom de '
+    "EMBAIXADOR: sóbria, específica, que um analista experiente assinaria. "
+    "Se não houver leitura realmente perspicaz a fazer, OMITA o campo;\n"
+    '- "brasil": OPCIONAL. 1 frase APENAS quando houver implicação CONCRETA '
+    "para o Brasil nos fatos (negócio, acordo, decisão que afeta interesses "
+    "brasileiros). NUNCA force conexão com o Brasil; na dúvida, OMITA;\n"
     '- "extras": índices k dos itens x<n>.<k> da pesquisa adicional que valem '
     "citar como fonte (até 3; só os realmente pertinentes).\n"
     "Baseie-se APENAS no material fornecido — não invente fatos, números nem "
-    "datas. Em português, tom sóbrio.\n"
+    "datas. Em português, sem clichês nem sensacionalismo.\n"
     'Responda APENAS em JSON: {"narrativas": [{"n": 0, "sintese": "...", '
     '"pontos": ["..."], "leitura": "...", "brasil": "...", "extras": [1]}]}.\n\n'
     "Material:\n"
@@ -1424,6 +1446,39 @@ def _gemini_call(prompt: str, api_key: str, model: str, max_tokens: int,
             if attempt < retries:
                 time.sleep(3 * (attempt + 1))
     raise last_err
+
+
+def _pick_pro_model(api_key: str, fallback: str) -> str:
+    """Escolhe o melhor modelo Pro DISPONÍVEL para a conta, consultando a
+    própria API (evita 404 por chutar nome de modelo). Respeita a env
+    GEMINI_MODEL_NARRATIVES quando definida; sem Pro disponível, usa o padrão."""
+    env = os.environ.get("GEMINI_MODEL_NARRATIVES")
+    if env:
+        return env
+    names: list[str] = []
+    try:
+        req = urllib.request.Request(
+            "https://generativelanguage.googleapis.com/v1beta/models?pageSize=200",
+            headers={"x-goog-api-key": api_key, "User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read())
+        for m in data.get("models", []):
+            if "generateContent" in (m.get("supportedGenerationMethods") or []):
+                names.append(m.get("name", "").removeprefix("models/"))
+    except Exception:  # noqa: BLE001 — sem lista, fica o fallback
+        return fallback
+    # Preferência: "gemini-X.Y-pro" estável de maior versão; senão variantes.
+    best, best_v = None, -1.0
+    for pat in (r"gemini-(\d+(?:\.\d+)?)-pro", r"gemini-(\d+(?:\.\d+)?)-pro[\w.-]*"):
+        for name in names:
+            m = re.fullmatch(pat, name)
+            if m:
+                v = float(m.group(1))
+                if v > best_v:
+                    best, best_v = name, v
+        if best:
+            break
+    return best or fallback
 
 
 def gemini_enrich(articles: list[dict], now: datetime) -> tuple[list[dict], dict | None]:
@@ -1619,21 +1674,27 @@ def gemini_enrich(articles: list[dict], now: datetime) -> tuple[list[dict], dict
     # cai para o modelo padrão. Sem narrativas, o bloco não aparece.
     narratives: dict | None = None
     if pool:
-        model_narr = os.environ.get("GEMINI_MODEL_NARRATIVES", "gemini-3.5-pro")
+        model_narr = _pick_pro_model(api_key, model)
+        print(f"  [narrativas] modelo: {model_narr}")
+
+        def _narr_call(prompt: str, toks: int):
+            """Chamada analítica: tenta o Pro; se falhar, cai pro padrão."""
+            try:
+                return _gemini_call(prompt, api_key, model_narr, toks, deep=True)
+            except Exception as exc:  # noqa: BLE001
+                if model_narr == model:
+                    raise
+                print(f"  ! Gemini narrativas com {model_narr} falhou "
+                      f"({str(exc)[:60]}) — tentando {model}")
+                return _gemini_call(prompt, api_key, model, toks)
+
         listing = "\n".join(
             f'{i}: "{a["title"]}" — {a["source"]} [{", ".join(a["themes"])}]'
             + (f' :: {a["summary"][:180]}' if a["summary"] else "")
             for i, a in enumerate(pool)
         )
         try:
-            try:
-                res = _gemini_call(NARRATIVES_PROMPT + listing, api_key,
-                                   model_narr, 16384, deep=True)
-            except Exception as exc:  # noqa: BLE001 — Pro falhou; usa o padrão
-                print(f"  ! Gemini narrativas com {model_narr} falhou "
-                      f"({str(exc)[:60]}) — tentando {model}")
-                res = _gemini_call(NARRATIVES_PROMPT + listing, api_key,
-                                   model, 8192)
+            res = _narr_call(NARRATIVES_PROMPT + listing, 16384)
             out = []
             for n in (res.get("narrativas", []) or [])[:6]:
                 if not isinstance(n, dict):
@@ -1699,9 +1760,8 @@ def gemini_enrich(articles: list[dict], now: datetime) -> tuple[list[dict], dict
                         for k, m in enumerate(ex_items):
                             lines.append(f'  x{j}.{k}: "{m["title"]}" — {m["source"]}')
                         sec.append("\n".join(lines))
-                    rep = _gemini_call(
-                        NARRATIVE_REPORT_PROMPT + "\n\n".join(sec),
-                        api_key, model_narr, 16384, deep=True)
+                    rep = _narr_call(
+                        NARRATIVE_REPORT_PROMPT + "\n\n".join(sec), 16384)
                     for r in (rep.get("narrativas", []) or []):
                         if not isinstance(r, dict):
                             continue
@@ -1714,7 +1774,7 @@ def gemini_enrich(articles: list[dict], now: datetime) -> tuple[list[dict], dict
                         n = out[j]
                         sint = (r.get("sintese") or "").strip()
                         pontos = [str(p).strip() for p in (r.get("pontos") or [])
-                                  if str(p).strip()][:4]
+                                  if str(p).strip()][:5]
                         if sint:
                             n["sintese"] = sint
                         if pontos:

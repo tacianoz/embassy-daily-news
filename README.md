@@ -116,7 +116,7 @@ narrativas simplesmente não aparece).
 | `HISTORY_DIR` | `history` | Pasta versionada com os snapshots diários (menu Hoje/Ontem/Anteontem) |
 | `GEMINI_API_KEY` | — | Ativa a camada de IA (ranqueamento/destaques/resumos) |
 | `GEMINI_MODEL` | `gemini-3.6-flash` | Modelo da camada de IA (pontuação/curadoria) |
-| `GEMINI_MODEL_NARRATIVES` | `gemini-3.5-pro` | Modelo de ponta usado só nas Narrativas do dia (com raciocínio profundo; *fallback* para o `GEMINI_MODEL`) |
+| `GEMINI_MODEL_NARRATIVES` | *auto* | Modelo das Narrativas do dia (raciocínio profundo). Sem definir, o build escolhe o melhor modelo **Pro** disponível na conta; *fallback* para o `GEMINI_MODEL` |
 
 ## Histórico de 3 dias (Hoje / Ontem / Anteontem)
 

@@ -51,8 +51,8 @@ jobs:
           # heurístico (fallback automático).
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-3.6-flash
-          # Modelo de ponta só para a síntese das Narrativas (1 chamada/dia)
-          GEMINI_MODEL_NARRATIVES: gemini-3.5-pro
+          # Narrativas: sem override, o build escolhe automaticamente o melhor
+          # modelo Pro disponível na conta (consulta a lista de modelos da API)
 
       # Persiste os snapshots de history/ para que o menu de 3 dias (Hoje /
       # Ontem / Anteontem) sobreviva entre execuções. Não falha o build se o
