@@ -53,6 +53,12 @@ jobs:
           GEMINI_MODEL: gemini-3.6-flash
           # Narrativas: sem override, o build escolhe automaticamente o melhor
           # modelo Pro disponível na conta (consulta a lista de modelos da API)
+          # Opcional (APIs pagas): com UMA destas secrets, as Narrativas usam
+          # um modelo de ponta — Claude Opus 4.8 (Anthropic) ou GPT-5.6 Sol
+          # (OpenAI). Sem elas, continuam no Gemini (grátis). Se ambas
+          # existirem, a Anthropic tem prioridade.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       # Persiste os snapshots de history/ para que o menu de 3 dias (Hoje /
       # Ontem / Anteontem) sobreviva entre execuções. Não falha o build se o

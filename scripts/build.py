@@ -1443,6 +1443,77 @@ def _gemini_call(prompt: str, api_key: str, model: str, max_tokens: int,
     raise last_err
 
 
+def _claude_call(prompt: str, api_key: str, max_tokens: int, retries: int = 1):
+    """Chama o Claude (API da Anthropic) e devolve o JSON da resposta. Usado
+    nas Narrativas quando ANTHROPIC_API_KEY está configurada — modelo de ponta
+    com raciocínio adaptativo. HTTP puro (stdlib), como o resto do projeto."""
+    model = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
+    body = json.dumps({
+        "model": model,
+        "max_tokens": max_tokens,
+        # Raciocínio adaptativo: o modelo decide quanto pensar (tarefa analítica)
+        "thinking": {"type": "adaptive"},
+        "messages": [{"role": "user", "content": prompt}],
+    }).encode("utf-8")
+    last_err: Exception | None = None
+    for attempt in range(retries + 1):
+        try:
+            req = urllib.request.Request(
+                "https://api.anthropic.com/v1/messages", data=body,
+                headers={"Content-Type": "application/json",
+                         "x-api-key": api_key,
+                         "anthropic-version": "2023-06-01",
+                         "User-Agent": USER_AGENT})
+            with urllib.request.urlopen(req, timeout=180) as resp:
+                raw = json.loads(resp.read())
+            if raw.get("stop_reason") == "refusal":
+                raise RuntimeError("recusa do modelo")
+            text = next(b["text"] for b in raw.get("content", [])
+                        if b.get("type") == "text")
+            # Tolera texto/cercas de markdown em volta do JSON
+            start, end = text.find("{"), text.rfind("}")
+            if start == -1 or end == -1:
+                raise ValueError("resposta sem JSON")
+            return json.loads(text[start:end + 1])
+        except Exception as exc:  # noqa: BLE001
+            last_err = exc
+            if attempt < retries:
+                time.sleep(5)
+    raise last_err
+
+
+def _openai_call(prompt: str, api_key: str, max_tokens: int, retries: int = 1):
+    """Chama a API da OpenAI (GPT-5.6 Sol) e devolve o JSON da resposta. Usada
+    nas Narrativas quando OPENAI_API_KEY está configurada."""
+    model = os.environ.get("OPENAI_MODEL", "gpt-5.6-sol")
+    body = json.dumps({
+        "model": model,
+        "max_completion_tokens": max_tokens,
+        "response_format": {"type": "json_object"},
+        "messages": [{"role": "user", "content": prompt}],
+    }).encode("utf-8")
+    last_err: Exception | None = None
+    for attempt in range(retries + 1):
+        try:
+            req = urllib.request.Request(
+                "https://api.openai.com/v1/chat/completions", data=body,
+                headers={"Content-Type": "application/json",
+                         "Authorization": f"Bearer {api_key}",
+                         "User-Agent": USER_AGENT})
+            with urllib.request.urlopen(req, timeout=180) as resp:
+                raw = json.loads(resp.read())
+            text = raw["choices"][0]["message"]["content"]
+            start, end = text.find("{"), text.rfind("}")
+            if start == -1 or end == -1:
+                raise ValueError("resposta sem JSON")
+            return json.loads(text[start:end + 1])
+        except Exception as exc:  # noqa: BLE001
+            last_err = exc
+            if attempt < retries:
+                time.sleep(5)
+    raise last_err
+
+
 def _pick_pro_model(api_key: str, fallback: str) -> str:
     """Escolhe o melhor modelo Pro DISPONÍVEL para a conta, consultando a
     própria API (evita 404 por chutar nome de modelo). Respeita a env
@@ -1670,10 +1741,30 @@ def gemini_enrich(articles: list[dict], now: datetime) -> tuple[list[dict], dict
     narratives: dict | None = None
     if pool:
         model_narr = _pick_pro_model(api_key, model)
-        print(f"  [narrativas] modelo: {model_narr}")
+        # Motor das Narrativas: modelo de ponta pago quando a secret existir
+        # (Anthropic tem prioridade se ambas estiverem configuradas); sem
+        # secrets, fica no Gemini Pro (grátis). Fallback sempre para o Gemini.
+        anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
+        openai_key = os.environ.get("OPENAI_API_KEY")
+        if anthropic_key:
+            top = (os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8"), "Anthropic")
+        elif openai_key:
+            top = (os.environ.get("OPENAI_MODEL", "gpt-5.6-sol"), "OpenAI")
+        else:
+            top = None
+        print(f"  [narrativas] modelo: "
+              + (f"{top[0]} ({top[1]}; fallback {model_narr})" if top else model_narr))
 
         def _narr_call(prompt: str, toks: int):
-            """Chamada analítica: tenta o Pro; se falhar, cai pro padrão."""
+            """Cadeia analítica: modelo de ponta (se houver) → Gemini Pro → padrão."""
+            if top:
+                try:
+                    call = _claude_call if top[1] == "Anthropic" else _openai_call
+                    key = anthropic_key if top[1] == "Anthropic" else openai_key
+                    return call(prompt, key, toks)
+                except Exception as exc:  # noqa: BLE001
+                    print(f"  ! {top[0]} falhou ({str(exc)[:60]}) — "
+                          f"tentando {model_narr}")
             try:
                 return _gemini_call(prompt, api_key, model_narr, toks, deep=True)
             except Exception as exc:  # noqa: BLE001

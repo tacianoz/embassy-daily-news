@@ -117,6 +117,9 @@ narrativas simplesmente não aparece).
 | `GEMINI_API_KEY` | — | Ativa a camada de IA (ranqueamento/destaques/resumos) |
 | `GEMINI_MODEL` | `gemini-3.6-flash` | Modelo da camada de IA (pontuação/curadoria) |
 | `GEMINI_MODEL_NARRATIVES` | *auto* | Modelo das Narrativas do dia (raciocínio profundo). Sem definir, o build escolhe o melhor modelo **Pro** disponível na conta; *fallback* para o `GEMINI_MODEL` |
+| `ANTHROPIC_API_KEY` | — | **Opcional (API paga).** Com esta secret, as Narrativas usam o **Claude Opus 4.8** (raciocínio adaptativo) — ~US$ 0,30-0,50/dia. Prioridade sobre a OpenAI se ambas existirem |
+| `OPENAI_API_KEY` | — | **Opcional (API paga).** Com esta secret, as Narrativas usam o **GPT-5.6 Sol** — custo similar. Sem nenhuma das duas, seguem no Gemini Pro (grátis). Fallback sempre: → Gemini Pro → Gemini Flash |
+| `ANTHROPIC_MODEL` / `OPENAI_MODEL` | `claude-opus-4-8` / `gpt-5.6-sol` | Modelo pago usado nas Narrativas (quando a chave correspondente está configurada) |
 
 ## Histórico de 3 dias (Hoje / Ontem / Anteontem)
 
