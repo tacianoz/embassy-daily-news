@@ -761,6 +761,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Notícias do dia — Embaixada do Brasil em Nova Délhi</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23009c3b'/%3E%3Cpath d='M16 4 L30 16 L16 28 L2 16 Z' fill='%23ffdf00'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23002776'/%3E%3C/svg%3E">
 <style>
   :root {
     --bg: #f4f6fb; --card: #ffffff; --ink: #1a1f36; --muted: #6b7280;
@@ -1241,14 +1242,22 @@ def _gemini_call(prompt: str, api_key: str, model: str, max_tokens: int,
                  retries: int = 2):
     """Chama o Gemini e devolve o JSON da resposta. Tenta de novo com backoff
     em falhas transitórias (429/5xx/rede/JSON truncado); esgotado, relança."""
+    # "Thinking" mínimo para não gastar tokens à toa nem truncar o JSON. A API
+    # mudou entre gerações: o 2.5 desliga com thinkingBudget=0; o 3.x (3.6 Flash
+    # etc.) não aceita budget e usa thinkingLevel ("low"/"high") — misturar os
+    # dois dá 400. Detecta a versão maior do modelo para escolher o campo certo.
+    _mv = re.match(r"gemini-(\d+)", model)
+    if _mv and int(_mv.group(1)) >= 3:
+        thinking = {"thinkingLevel": "low"}
+    else:
+        thinking = {"thinkingBudget": 0}
     body = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "temperature": 0.1,
             "response_mime_type": "application/json",
             "maxOutputTokens": max_tokens,
-            # Desliga o "thinking" do 2.5-flash (senão consome tokens e trunca).
-            "thinkingConfig": {"thinkingBudget": 0},
+            "thinkingConfig": thinking,
         },
     }).encode("utf-8")
     url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
@@ -1286,7 +1295,7 @@ def gemini_enrich(articles: list[dict], now: datetime) -> list[dict]:
         if not api_key:
             print("  (Gemini desativado: sem GEMINI_API_KEY — usando ranking heurístico)")
         return []
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
 
     # Cobertura ampla: topo global + até 40 por tema => a IA pontua (e ordena)
     # cada seção, não só os destaques. O heurístico fica só como desempate.

@@ -75,7 +75,7 @@ com o ranking heurístico.
 1. Crie uma API key em <https://aistudio.google.com/apikey> (free tier).
 2. No repositório: **Settings → Secrets and variables → Actions → New
    repository secret**, nome `GEMINI_API_KEY`, valor = sua chave.
-3. Rode o workflow. Modelo padrão: `gemini-2.5-flash` (ajustável via
+3. Rode o workflow. Modelo padrão: `gemini-3.6-flash` (ajustável via
    variável `GEMINI_MODEL`).
 
 ## Personalização
@@ -108,7 +108,7 @@ com o ranking heurístico.
 | `MIN_ARTICLES` | `30` (`0` em teste) | Piso de matérias: abaixo disso o build aborta sem publicar, preservando a edição anterior |
 | `HISTORY_DIR` | `history` | Pasta versionada com os snapshots diários (menu Hoje/Ontem/Anteontem) |
 | `GEMINI_API_KEY` | — | Ativa a camada de IA (ranqueamento/destaques/resumos) |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Modelo da camada de IA |
+| `GEMINI_MODEL` | `gemini-3.6-flash` | Modelo da camada de IA |
 
 ## Histórico de 3 dias (Hoje / Ontem / Anteontem)
 

@@ -50,7 +50,7 @@ jobs:
           # Camada de IA opcional. Sem a secret, o build usa só o ranking
           # heurístico (fallback automático).
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: gemini-2.5-flash
+          GEMINI_MODEL: gemini-3.6-flash
 
       # Persiste os snapshots de history/ para que o menu de 3 dias (Hoje /
       # Ontem / Anteontem) sobreviva entre execuções. Não falha o build se o
