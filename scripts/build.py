@@ -282,7 +282,7 @@ THEMES = {
         ],
     },
     "clima": {
-        "label": "Mudanças climáticas e meio ambiente",
+        "label": "Clima e meio ambiente",
         "desc": "Clima, meio ambiente, recursos naturais e políticas/disputas ambientais",
         "color": "#0891b2",
         "icon": "🌱",

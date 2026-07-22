@@ -16,7 +16,7 @@ interativo com manchetes, resumos e link de acesso.
 | 📈 **Economia** | Economia, mercados e comércio |
 | ⚡ **Energia** | Petróleo, gás, renováveis e eletricidade |
 | 🔬 **Ciência, tecnologia e inovação** | C&T, espaço e inovação |
-| 🌱 **Mudanças climáticas e meio ambiente** | Clima, meio ambiente e sustentabilidade |
+| 🌱 **Clima e meio ambiente** | Mudanças climáticas, meio ambiente e sustentabilidade |
 
 ## Como funciona
 
