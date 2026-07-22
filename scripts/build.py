@@ -1023,6 +1023,9 @@ TEMPLATE = r"""<!DOCTYPE html>
       }
       updateChips();
       render();
+      // Ao trocar de filtro, volta a rolagem ao topo (importante no mobile,
+      // senão o usuário fica no meio da lista anterior).
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
     return el;
   }
