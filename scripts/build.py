@@ -906,12 +906,6 @@ TEMPLATE = r"""<!DOCTYPE html>
     line-height: 1.5; }
   .nn .fact::before { content: ""; position: absolute; left: 0; top: .5em;
     width: 7px; height: 7px; border-radius: 2px; background: var(--nc, #c2185b); }
-  .nn .read { margin-top: 7px; font-size: 12.5px; color: var(--muted);
-    line-height: 1.55; }
-  .nn .read b { color: var(--ink); font-weight: 700; }
-  .nn .br-line { margin-top: 7px; font-size: 12.5px; line-height: 1.5;
-    background: linear-gradient(90deg, rgba(30,158,62,.12), rgba(255,210,0,.05) 60%, transparent);
-    border-radius: 8px; padding: 6px 10px; }
   .nn .foot { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
   .nn .foot a { font-size: 11px; font-weight: 700; text-decoration: none;
     color: var(--muted); border: 1px solid var(--line); border-radius: 999px;
@@ -1195,8 +1189,6 @@ TEMPLATE = r"""<!DOCTYPE html>
             '<div class="head"><h3>' + esc(n.titulo) + '</h3><div class="badges">' + nBadges(n) + '</div></div>' +
             (n.sintese ? '<div class="sint">' + esc(n.sintese) + '</div>' : '') +
             body +
-            (n.leitura ? '<div class="read">💡 <b>Leitura:</b> ' + esc(n.leitura) + '</div>' : '') +
-            (n.brasil ? '<div class="br-line">🇧🇷 ' + esc(n.brasil) + '</div>' : '') +
             (pills ? '<div class="foot">' + pills + '</div>' : '') +
           '</article>';
         }).join('') + '</div>');
@@ -1341,20 +1333,21 @@ EDITOR_PROMPT = (
 
 NARRATIVES_PROMPT = (
     DIPLOMAT_PERSONA + "\n\n"
-    "Agora atue como ANALISTA da Embaixada: leia o conjunto de matérias do dia "
-    "e identifique as PRINCIPAIS NARRATIVAS da imprensa indiana hoje — os fios "
-    "condutores que conectam as matérias entre si — com as CHAVES DE LEITURA "
-    "para um diplomata brasileiro.\n"
+    "Leia o conjunto de matérias do dia e identifique os PRINCIPAIS TEMAS "
+    "ESTRATÉGICOS do noticiário indiano hoje — os assuntos-chave que um "
+    "diplomata brasileiro precisa conhecer. Seja ESTRITAMENTE FACTUAL: relate "
+    "o que as matérias dizem, sem tese, sem interpretação, sem exagero.\n"
     "Devolva:\n"
-    '- "quadro": parágrafo de abertura (2 a 4 frases, em português) com o '
-    "quadro geral do dia: o clima dominante do noticiário indiano e o que mais "
-    "importa para o Brasil hoje.\n"
-    '- "narrativas": de 3 a 6 narrativas, em ordem de importância, cada uma '
-    "com:\n"
-    '  - "titulo": título curto e forte em português (máx. 8 palavras);\n'
-    '  - "texto": 2 a 4 frases em português explicando a narrativa, o que está '
-    "em jogo e a chave de leitura (por que importa e o que observar nos "
-    "próximos dias), mencionando implicações para o Brasil quando existirem;\n"
+    '- "quadro": parágrafo de abertura (2 a 3 frases, em português) FACTUAL '
+    "com os principais fatos do dia no noticiário indiano — sem adjetivação "
+    "nem leitura interpretativa.\n"
+    '- "narrativas": de 3 a 6 temas, em ordem de importância, cada um com:\n'
+    '  - "titulo": título curto FACTUAL e descritivo em português (máx. 8 '
+    "palavras) — descreva o fato central como uma manchete sóbria, NUNCA uma "
+    "tese (ex.: 'Índia negocia acordos comerciais com EUA e UE', não 'Índia "
+    "se projeta como potência');\n"
+    '  - "texto": 2 a 4 frases em português com os FATOS que compõem o tema '
+    "(quem, o quê, quando, números) — sem opinião;\n"
     '  - "temas": chaves de tema envolvidas, entre: brasil, brics, '
     "politica_externa, defesa, politica_interna, economia, energia, cti, "
     "clima, opiniao;\n"
@@ -1373,30 +1366,28 @@ NARRATIVES_PROMPT = (
 
 NARRATIVE_REPORT_PROMPT = (
     DIPLOMAT_PERSONA + "\n\n"
-    "Você identificou as narrativas do dia e uma PESQUISA ADICIONAL trouxe "
-    "material novo sobre cada uma (itens marcados com x). Produza, para CADA "
-    "narrativa, um BRIEFING para diplomatas.\n"
-    "O OBJETIVO PRINCIPAL É INFORMAR: munir o diplomata dos principais FATOS "
-    "do dia. Fatos primeiro; análise só quando for genuinamente inteligente e "
-    "ancorada nos fatos — nunca análise genérica ou de manual.\n"
-    "Para cada narrativa devolva:\n"
-    '- "n": o número da narrativa;\n'
-    '- "sintese": 1 frase que capture a essência (máx. 140 caracteres);\n'
-    '- "pontos": 3 a 5 FATOS-CHAVE em bullets telegráficos (máx. 16 palavras '
-    "cada; com números, datas, nomes e decisões concretas do material — é o "
-    "coração do briefing);\n"
-    '- "leitura": OPCIONAL. 1 frase de leitura analítica em tom de '
-    "EMBAIXADOR: sóbria, específica, que um analista experiente assinaria. "
-    "Se não houver leitura realmente perspicaz a fazer, OMITA o campo;\n"
-    '- "brasil": OPCIONAL. 1 frase APENAS quando houver implicação CONCRETA '
-    "para o Brasil nos fatos (negócio, acordo, decisão que afeta interesses "
-    "brasileiros). NUNCA force conexão com o Brasil; na dúvida, OMITA;\n"
+    "Você identificou os temas do dia e uma PESQUISA ADICIONAL trouxe material "
+    "novo sobre cada um (itens marcados com x). Produza, para CADA tema, um "
+    "briefing ESTRITAMENTE FACTUAL.\n"
+    "O ÚNICO objetivo é INFORMAR com PRECISÃO: munir o diplomata dos fatos, "
+    "nomes, números e datas do dia. NENHUMA análise, NENHUMA interpretação, "
+    "NENHUMA implicação — a análise quem faz é o diplomata. Relate apenas o "
+    "que as matérias dizem; se houver contradição entre elas, registre as "
+    "duas versões; se algo foi cancelado ou negado, diga exatamente isso.\n"
+    "Para cada tema devolva:\n"
+    '- "n": o número do tema;\n'
+    '- "sintese": 1 frase FACTUAL com o fato central (máx. 140 caracteres, '
+    "sem adjetivos de opinião);\n"
+    '- "pontos": 4 a 6 FATOS em bullets telegráficos (máx. 18 palavras cada), '
+    "com o máximo de PRECISÃO: quem disse/decidiu, o quê, quando, quanto "
+    "(números, valores, datas, nomes de pessoas/empresas/órgãos). É o "
+    "conteúdo inteiro do briefing — priorize os fatos mais estratégicos;\n"
     '- "extras": índices k dos itens x<n>.<k> da pesquisa adicional que valem '
     "citar como fonte (até 3; só os realmente pertinentes).\n"
-    "Baseie-se APENAS no material fornecido — não invente fatos, números nem "
-    "datas. Em português, sem clichês nem sensacionalismo.\n"
+    "Baseie-se APENAS no material fornecido — não invente nem extrapole "
+    "fatos, números ou datas. Em português, tom sóbrio de nota informativa.\n"
     'Responda APENAS em JSON: {"narrativas": [{"n": 0, "sintese": "...", '
-    '"pontos": ["..."], "leitura": "...", "brasil": "...", "extras": [1]}]}.\n\n'
+    '"pontos": ["..."], "extras": [1]}]}.\n\n'
     "Material:\n"
 )
 
@@ -1774,17 +1765,11 @@ def gemini_enrich(articles: list[dict], now: datetime) -> tuple[list[dict], dict
                         n = out[j]
                         sint = (r.get("sintese") or "").strip()
                         pontos = [str(p).strip() for p in (r.get("pontos") or [])
-                                  if str(p).strip()][:5]
+                                  if str(p).strip()][:6]
                         if sint:
                             n["sintese"] = sint
                         if pontos:
                             n["pontos"] = pontos
-                        leitura = (r.get("leitura") or "").strip()
-                        if leitura:
-                            n["leitura"] = leitura
-                        brasil = (r.get("brasil") or "").strip()
-                        if brasil:
-                            n["brasil"] = brasil
                         # Fontes extras escolhidas pelo relatório (cap total 5)
                         ex_items = extras[j]
                         for k in (r.get("extras") or [])[:3]:

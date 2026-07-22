@@ -70,10 +70,10 @@ Opcionalmente, uma **camada de IA (Gemini)** gera os **Destaques do dia**,
 **resumos de 1 frase em português** e as **🧭 Narrativas do dia** — uma
 síntese analítica no topo da página Início, com o quadro geral do dia e as
 principais narrativas da imprensa indiana (os Destaques vêm logo abaixo).
-Cada narrativa passa por um **aprofundamento**: a IA identifica o fio
-condutor, faz uma **pesquisa adicional específica** no Google News Índia e
-entrega um relatório sucinto — síntese, fatos-chave em bullets, chave de
-leitura, implicação para o Brasil e fontes. É totalmente
+Cada narrativa passa por um **aprofundamento**: a IA identifica o tema, faz
+uma **pesquisa adicional específica** no Google News Índia e entrega um
+briefing **estritamente factual** — síntese e fatos-chave em bullets
+(nomes, números, datas), com fontes. Sem análise: a leitura é do diplomata. É totalmente
 opcional e com *fallback* automático: sem a chave (ou se a cota/rede
 falhar), o painel funciona 100% com o ranking heurístico (e o bloco de
 narrativas simplesmente não aparece).
