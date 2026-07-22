@@ -524,7 +524,13 @@ def strip_html(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def fetch(url: str, timeout: int = 20) -> bytes | None:
+# UA de navegador para baixar PÁGINAS DE ARTIGO (portais costumam bloquear
+# UAs de bot); os feeds RSS continuam com o USER_AGENT identificado (educado).
+BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+              "(KHTML, like Gecko) Chrome/126.0 Safari/537.36")
+
+
+def fetch(url: str, timeout: int = 20, ua: str | None = None) -> bytes | None:
     """Busca uma URL (ou lê um arquivo local, para testes)."""
     if not url.startswith(("http://", "https://")):
         try:
@@ -537,7 +543,7 @@ def fetch(url: str, timeout: int = 20) -> bytes | None:
     last_err = None
     for attempt in range(3):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            req = urllib.request.Request(url, headers={"User-Agent": ua or USER_AGENT})
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return resp.read()
         except urllib.error.HTTPError as exc:
@@ -1498,11 +1504,12 @@ def _claude_call(prompt: str, api_key: str, max_tokens: int, retries: int = 1):
 
 
 def _resolve_gnews(url: str) -> str | None:
-    """Links de busca do Google News são redirecionadores; tenta descobrir a
-    URL real do veículo. Sem sucesso, devolve None (fica só a manchete)."""
+    """Links de busca do Google News são redirecionadores; descobre a URL real
+    do veículo. Tenta padrões diretos na página e, no formato novo, decodifica
+    via a API interna (batchexecute) que o próprio redirecionador usa."""
     if "news.google.com" not in url:
         return url
-    raw = fetch(url, timeout=15)
+    raw = fetch(url, timeout=15, ua=BROWSER_UA)
     if not raw:
         return None
     page = raw.decode("utf-8", "ignore")
@@ -1511,27 +1518,93 @@ def _resolve_gnews(url: str) -> str | None:
         m = re.search(pat, page)
         if m and "news.google.com" not in m.group(1):
             return html.unescape(m.group(1))
+    # Formato novo: assinatura + timestamp ficam na página; a decodificação é
+    # um POST na API interna do Google News.
+    m_id = re.search(r"articles/([^?/&]+)", url)
+    m_sg = re.search(r'data-n-a-sg="([^"]+)"', page)
+    m_ts = re.search(r'data-n-a-ts="([^"]+)"', page)
+    if not (m_id and m_sg and m_ts):
+        return None
+    try:
+        inner = json.dumps([
+            "garturlreq",
+            [["X", "X", ["X", "X"], None, None, 1, 1, "US:en", None, 1,
+              None, None, None, None, None, 0, 1], "X", "X", 1, [1, 1, 1],
+             1, 1, None, 0, 0, None, 0],
+            m_id.group(1), int(m_ts.group(1)), m_sg.group(1),
+        ])
+        body = urllib.parse.urlencode(
+            {"f.req": json.dumps([[["Fbv4je", inner, None, "generic"]]])}
+        ).encode("utf-8")
+        req = urllib.request.Request(
+            "https://news.google.com/_/DotsSplashUi/data/batchexecute",
+            data=body,
+            headers={"Content-Type":
+                     "application/x-www-form-urlencoded;charset=UTF-8",
+                     "User-Agent": BROWSER_UA})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            out = resp.read().decode("utf-8", "ignore")
+        idx = out.find("garturlres")
+        if idx != -1:
+            m = re.search(r'https?://[^"\\\s]+', out[idx:])
+            if m and "news.google.com" not in m.group(0):
+                return m.group(0)
+    except Exception:  # noqa: BLE001 — decodificação é bônus
+        pass
     return None
 
 
+def _extract_body(page: str) -> str:
+    """Extrai o corpo do artigo de uma página HTML, por ordem de qualidade:
+    1) articleBody do JSON-LD (muitos portais embutem o texto INTEGRAL para
+       SEO, mesmo quando a página visível tem paywall/JS);
+    2) parágrafos dentro de <article> (ou da página toda)."""
+    for m in re.finditer(r"(?is)<script[^>]+ld\+json[^>]*>(.*?)</script>", page):
+        try:
+            data = json.loads(m.group(1).strip())
+        except Exception:  # noqa: BLE001
+            continue
+        stack = data if isinstance(data, list) else [data]
+        while stack:
+            it = stack.pop()
+            if not isinstance(it, dict):
+                continue
+            if isinstance(it.get("@graph"), list):
+                stack.extend(it["@graph"])
+            bodytxt = it.get("articleBody")
+            if isinstance(bodytxt, str) and len(bodytxt) > 300:
+                return strip_html(html.unescape(bodytxt))
+    cleaned = re.sub(r"(?is)<(script|style|noscript|header|footer|nav|aside)"
+                     r"[^>]*>.*?</\1>", " ", page)
+    m = re.search(r"(?is)<article[^>]*>(.*?)</article>", cleaned)
+    scope = m.group(1) if m else cleaned
+    paras = [strip_html(p) for p in re.findall(r"(?is)<p[^>]*>(.*?)</p>", scope)]
+    text = " ".join(p for p in paras if len(p) > 60)
+    return text if len(text) > 300 else ""
+
+
 def _article_fulltext(url: str, max_chars: int = 4000) -> str:
-    """Baixa a matéria e extrai o texto principal (parágrafos do corpo).
-    Melhor esforço: paywall/JS pesado pode devolver pouco — aí devolve ''. """
+    """Baixa a matéria e extrai o texto principal. Escada de tentativas:
+    página normal (JSON-LD → <article>) → versão AMP (estática). Melhor
+    esforço: devolve '' quando nada rende texto de verdade."""
     try:
         resolved = _resolve_gnews(url)
         if not resolved:
             return ""
-        raw = fetch(resolved, timeout=15)
+        raw = fetch(resolved, timeout=15, ua=BROWSER_UA)
         if not raw or len(raw) > 3_000_000:
             return ""
         page = raw.decode("utf-8", "ignore")
-        page = re.sub(r"(?is)<(script|style|noscript|header|footer|nav|aside)"
-                      r"[^>]*>.*?</\1>", " ", page)
-        m = re.search(r"(?is)<article[^>]*>(.*?)</article>", page)
-        if m:
-            page = m.group(1)
-        paras = [strip_html(p) for p in re.findall(r"(?is)<p[^>]*>(.*?)</p>", page)]
-        text = " ".join(p for p in paras if len(p) > 60)
+        text = _extract_body(page)
+        if not text:
+            # Versão AMP: HTML estático, costuma escapar de paywall de JS
+            m = (re.search(r'<link[^>]+rel="amphtml"[^>]+href="([^"]+)"', page)
+                 or re.search(r'<link[^>]+href="([^"]+)"[^>]+rel="amphtml"', page))
+            if m:
+                amp_url = urllib.parse.urljoin(resolved, html.unescape(m.group(1)))
+                raw2 = fetch(amp_url, timeout=15, ua=BROWSER_UA)
+                if raw2 and len(raw2) <= 3_000_000:
+                    text = _extract_body(raw2.decode("utf-8", "ignore"))
         return text[:max_chars] if len(text) > 300 else ""
     except Exception:  # noqa: BLE001 — leitura integral é bônus, nunca quebra
         return ""
