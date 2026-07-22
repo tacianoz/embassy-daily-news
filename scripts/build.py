@@ -682,7 +682,8 @@ def render_html(payload: dict, day_menu: list[dict] | None = None) -> str:
                   for k, v in THEMES.items()}
     data_json = json.dumps(
         {"meta": payload["meta"], "themes": theme_meta,
-         "articles": payload["articles"], "highlights": payload.get("highlights", [])},
+         "articles": payload["articles"], "highlights": payload.get("highlights", []),
+         "narratives": payload.get("narratives")},
         ensure_ascii=False,
     )
 
