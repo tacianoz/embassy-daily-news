@@ -1381,7 +1381,9 @@ NARRATIVES_PROMPT = (
 NARRATIVE_REPORT_PROMPT = (
     DIPLOMAT_PERSONA + "\n\n"
     "Você identificou os temas do dia e uma PESQUISA ADICIONAL trouxe material "
-    "novo sobre cada um (itens marcados com x). Produza, para CADA tema, um "
+    "novo sobre cada um (itens marcados com x). Várias matérias trazem também "
+    "o TEXTO integral (campo TEXTO) — LEIA esses textos: é deles que saem os "
+    "números, valores, datas e nomes exatos. Produza, para CADA tema, um "
     "briefing ESTRITAMENTE FACTUAL.\n"
     "O ÚNICO objetivo é INFORMAR com PRECISÃO: munir o diplomata dos fatos, "
     "nomes, números e datas do dia. NENHUMA análise, NENHUMA interpretação, "
@@ -1493,6 +1495,46 @@ def _claude_call(prompt: str, api_key: str, max_tokens: int, retries: int = 1):
             if attempt < retries:
                 time.sleep(5)
     raise last_err
+
+
+def _resolve_gnews(url: str) -> str | None:
+    """Links de busca do Google News são redirecionadores; tenta descobrir a
+    URL real do veículo. Sem sucesso, devolve None (fica só a manchete)."""
+    if "news.google.com" not in url:
+        return url
+    raw = fetch(url, timeout=15)
+    if not raw:
+        return None
+    page = raw.decode("utf-8", "ignore")
+    for pat in (r'data-n-au="(https?://[^"]+)"',
+                r'<a[^>]+rel="nofollow[^"]*"[^>]+href="(https?://[^"]+)"'):
+        m = re.search(pat, page)
+        if m and "news.google.com" not in m.group(1):
+            return html.unescape(m.group(1))
+    return None
+
+
+def _article_fulltext(url: str, max_chars: int = 4000) -> str:
+    """Baixa a matéria e extrai o texto principal (parágrafos do corpo).
+    Melhor esforço: paywall/JS pesado pode devolver pouco — aí devolve ''. """
+    try:
+        resolved = _resolve_gnews(url)
+        if not resolved:
+            return ""
+        raw = fetch(resolved, timeout=15)
+        if not raw or len(raw) > 3_000_000:
+            return ""
+        page = raw.decode("utf-8", "ignore")
+        page = re.sub(r"(?is)<(script|style|noscript|header|footer|nav|aside)"
+                      r"[^>]*>.*?</\1>", " ", page)
+        m = re.search(r"(?is)<article[^>]*>(.*?)</article>", page)
+        if m:
+            page = m.group(1)
+        paras = [strip_html(p) for p in re.findall(r"(?is)<p[^>]*>(.*?)</p>", page)]
+        text = " ".join(p for p in paras if len(p) > 60)
+        return text[:max_chars] if len(text) > 300 else ""
+    except Exception:  # noqa: BLE001 — leitura integral é bônus, nunca quebra
+        return ""
 
 
 def _openai_call(prompt: str, api_key: str, max_tokens: int, retries: int = 1):
@@ -1850,14 +1892,38 @@ def gemini_enrich(articles: list[dict], now: datetime) -> tuple[list[dict], dict
                     print(f"  [narrativas] aprofundamento: {n_extra} matérias "
                           f"novas em {len(out)} buscas")
 
+                    # ---- Leitura integral: baixa o TEXTO das matérias-chave
+                    # (não só manchetes) para o briefing sair preciso. Melhor
+                    # esforço: paywall/redirect sem solução ficam só na manchete.
+                    to_read: list[dict] = []
+                    seen_links: set[str] = set()
+                    for n, ex_items in zip(out, extras):
+                        for m2 in (n["materias"] + ex_items[:3]):
+                            if m2["link"] not in seen_links:
+                                seen_links.add(m2["link"])
+                                to_read.append(m2)
+                    with ThreadPoolExecutor(max_workers=8) as ex3:
+                        bodies = list(ex3.map(
+                            lambda m2: _article_fulltext(m2["link"]), to_read))
+                    fulltext = {m2["link"]: t for m2, t in zip(to_read, bodies) if t}
+                    print(f"  [narrativas] leitura integral: {len(fulltext)}/"
+                          f"{len(to_read)} matérias com texto completo")
+
+                    def _mat_line(tag: str, m2: dict) -> str:
+                        line = f'  {tag}: "{m2["title"]}" — {m2["source"]}'
+                        body = fulltext.get(m2["link"])
+                        if body:
+                            line += f"\n    TEXTO: {body[:2500]}"
+                        return line
+
                     sec = []
                     for j, (n, ex_items) in enumerate(zip(out, extras)):
                         lines = [f'NARRATIVA {j}: {n["titulo"]}',
                                  f'  contexto: {n["texto"]}']
-                        for k, m in enumerate(n["materias"]):
-                            lines.append(f'  m{j}.{k}: "{m["title"]}" — {m["source"]}')
-                        for k, m in enumerate(ex_items):
-                            lines.append(f'  x{j}.{k}: "{m["title"]}" — {m["source"]}')
+                        for k, m2 in enumerate(n["materias"]):
+                            lines.append(_mat_line(f"m{j}.{k}", m2))
+                        for k, m2 in enumerate(ex_items):
+                            lines.append(_mat_line(f"x{j}.{k}", m2))
                         sec.append("\n".join(lines))
                     rep = _narr_call(
                         NARRATIVE_REPORT_PROMPT + "\n\n".join(sec), 16384)
