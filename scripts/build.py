@@ -24,6 +24,7 @@ import sys
 import time
 import urllib.request
 import urllib.error
+import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
@@ -880,17 +881,30 @@ TEMPLATE = r"""<!DOCTYPE html>
   .narr-quadro .k { font-size: 11px; font-weight: 800; letter-spacing: .8px;
     text-transform: uppercase; color: rgba(255,255,255,.65); display: block;
     margin-bottom: 6px; }
+  .narr-grid { grid-column: 1 / -1; display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); }
   .narr-card { background: var(--card); border: 1px solid var(--line);
-    border-left: 5px solid var(--nc, #c2185b); border-radius: var(--radius);
-    box-shadow: var(--shadow); padding: 16px 20px; }
-  .narr-card h3 { margin: 0 0 8px; font-size: 17px; }
-  .narr-card .txt { margin: 0 0 10px; line-height: 1.65; font-size: 14px; }
-  .narr-card .badges { margin-bottom: 10px; }
-  .narr-links { display: flex; flex-direction: column; gap: 5px; font-size: 13px;
-    border-top: 1px dashed var(--line); padding-top: 10px; }
-  .narr-links a { color: var(--muted); text-decoration: none; }
-  .narr-links a:hover { text-decoration: underline; color: var(--ink); }
-  .narr-links .s { font-weight: 600; }
+    border-top: 4px solid var(--nc, #c2185b); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 16px 18px; display: flex;
+    flex-direction: column; gap: 10px; }
+  .narr-card h3 { margin: 0; font-size: 16.5px; line-height: 1.35; }
+  .narr-card .txt { margin: 0; line-height: 1.6; font-size: 13.5px; }
+  .narr-card .badges { margin: 0; }
+  .nn-sint { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted);
+    font-style: italic; }
+  .nn-points { margin: 0; padding: 0; list-style: none; }
+  .nn-points li { padding: 3px 0 3px 18px; position: relative;
+    font-size: 13.5px; line-height: 1.5; }
+  .nn-points li::before { content: "▸"; position: absolute; left: 2px;
+    color: var(--nc, #c2185b); font-weight: 700; }
+  .nn-call { background: rgba(21,34,76,.06); border-left: 3px solid #15224c;
+    padding: 8px 11px; border-radius: 8px; font-size: 12.5px; line-height: 1.55; }
+  .nn-call.br { background: rgba(30,158,62,.09); border-left-color: #1e9e3e; }
+  .nn-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+  .nn-pills a { font-size: 11.5px; font-weight: 700; text-decoration: none;
+    color: var(--muted); border: 1px solid var(--line); border-radius: 999px;
+    padding: 3px 10px; transition: border-color .15s ease, color .15s ease; }
+  .nn-pills a:hover { color: var(--ink); border-color: var(--nc, #999); }
   footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 12.5px; padding: 24px 0 50px; }
   footer .wrap { display: flex; flex-direction: column; gap: 6px; }
 
@@ -1147,20 +1161,28 @@ TEMPLATE = r"""<!DOCTYPE html>
         const nColor = n => (n.temas && n.temas[0] && THEMES[n.temas[0]]) ? THEMES[n.temas[0]].color : '#c2185b';
         const nBadges = n => (n.temas || []).filter(t => THEMES[t]).map(t =>
           '<span class="badge" style="--bc:' + THEMES[t].color + '">' + THEMES[t].icon + ' ' + esc(THEMES[t].label) + '</span>').join('');
-        const nLinks = n => (n.materias || []).map(m =>
-          '<a href="' + esc(m.link) + '" target="_blank" rel="noopener">📄 ' + esc(m.title) +
-          ' <span class="s">— ' + esc(m.source) + '</span></a>').join('');
         parts.push('<div class="narr">' +
           '<h2 class="sec-inline">🧭 Narrativas do dia <span class="sec-tag">análise por IA</span></h2>' +
           (NARR.quadro ? '<div class="narr-quadro"><span class="k">Quadro geral do dia</span>' + esc(NARR.quadro) + '</div>' : '') +
-          NARR.itens.map(n =>
-            '<div class="narr-card" style="--nc:' + nColor(n) + '">' +
-              '<h3>' + esc(n.titulo) + '</h3>' +
-              '<p class="txt">' + esc(n.texto) + '</p>' +
-              '<div class="badges">' + nBadges(n) + '</div>' +
-              ((n.materias || []).length ? '<div class="narr-links">' + nLinks(n) + '</div>' : '') +
-            '</div>').join('') +
           '</div>');
+        parts.push('<div class="narr-grid">' + NARR.itens.map(n => {
+          const pills = (n.materias || []).map(m =>
+            '<a href="' + esc(m.link) + '" target="_blank" rel="noopener" title="' + esc(m.title) + '">' + esc(m.source || 'fonte') + ' ↗</a>').join('');
+          // Relatório estruturado (bullets) quando o aprofundamento rodou;
+          // senão, o texto corrido da identificação (fallback).
+          const body = (n.pontos && n.pontos.length)
+            ? '<ul class="nn-points">' + n.pontos.map(p => '<li>' + esc(p) + '</li>').join('') + '</ul>'
+            : (n.texto ? '<p class="txt">' + esc(n.texto) + '</p>' : '');
+          return '<div class="narr-card" style="--nc:' + nColor(n) + '">' +
+            '<h3>' + esc(n.titulo) + '</h3>' +
+            (n.sintese ? '<p class="nn-sint">' + esc(n.sintese) + '</p>' : '') +
+            body +
+            (n.leitura ? '<div class="nn-call">💡 ' + esc(n.leitura) + '</div>' : '') +
+            (n.brasil ? '<div class="nn-call br">🇧🇷 ' + esc(n.brasil) + '</div>' : '') +
+            '<div class="badges">' + nBadges(n) + '</div>' +
+            (pills ? '<div class="nn-pills">' + pills + '</div>' : '') +
+          '</div>';
+        }).join('') + '</div>');
       }
       if (list.length) {
         const tag = DATA.meta.ai_curated ? 'curadoria por IA' : 'mais relevantes';
@@ -1320,12 +1342,40 @@ NARRATIVES_PROMPT = (
     "politica_externa, defesa, politica_interna, economia, energia, cti, "
     "clima, opiniao;\n"
     '  - "itens": índices (números) de 2 a 4 matérias da lista que sustentam '
-    "a narrativa.\n"
+    "a narrativa;\n"
+    '  - "busca": consulta de 3 a 6 palavras EM INGLÊS para aprofundar esta '
+    "narrativa numa busca no Google News Índia (termos específicos do fato, "
+    "não genéricos).\n"
     "Tom de nota diplomática: analítico, sóbrio, sem sensacionalismo. Baseie-se "
     "APENAS nas matérias listadas — não invente fatos.\n"
     'Responda APENAS em JSON: {"quadro": "...", "narrativas": [{"titulo": '
-    '"...", "texto": "...", "temas": ["..."], "itens": [0, 1]}]}.\n\n'
+    '"...", "texto": "...", "temas": ["..."], "itens": [0, 1], "busca": "..."}]}.\n\n'
     "Matérias do dia:\n"
+)
+
+
+NARRATIVE_REPORT_PROMPT = (
+    DIPLOMAT_PERSONA + "\n\n"
+    "Você identificou as narrativas do dia e uma PESQUISA ADICIONAL trouxe "
+    "material novo sobre cada uma (itens marcados com x). Agora produza, para "
+    "CADA narrativa, um RELATÓRIO SUCINTO E INTELIGENTE, útil para diplomatas "
+    "— denso em informação e leve em texto (nada de parágrafos longos).\n"
+    "Para cada narrativa devolva:\n"
+    '- "n": o número da narrativa;\n'
+    '- "sintese": 1 frase que capture a essência (máx. 140 caracteres);\n'
+    '- "pontos": 2 a 4 fatos-chave em bullets telegráficos (máx. 15 palavras '
+    "cada; use números/datas/nomes concretos do material);\n"
+    '- "leitura": 1-2 frases com a chave de leitura: por que importa e o que '
+    "observar nos próximos dias;\n"
+    '- "brasil": 1 frase com a implicação para o Brasil (SÓ se houver de fato; '
+    "senão omita o campo);\n"
+    '- "extras": índices k dos itens x<n>.<k> da pesquisa adicional que valem '
+    "citar como fonte (até 3; só os realmente pertinentes).\n"
+    "Baseie-se APENAS no material fornecido — não invente fatos, números nem "
+    "datas. Em português, tom sóbrio.\n"
+    'Responda APENAS em JSON: {"narrativas": [{"n": 0, "sintese": "...", '
+    '"pontos": ["..."], "leitura": "...", "brasil": "...", "extras": [1]}]}.\n\n'
+    "Material:\n"
 )
 
 
@@ -1604,12 +1654,96 @@ def gemini_enrich(articles: list[dict], now: datetime) -> tuple[list[dict], dict
                         mats.append({"title": a["title"], "source": a["source"],
                                      "link": a["link"]})
                 out.append({"titulo": titulo, "texto": texto, "temas": temas,
-                            "materias": mats})
+                            "materias": mats,
+                            "busca": (n.get("busca") or "").strip()})
+
+            # ---- Aprofundamento: pesquisa adicional específica por narrativa
+            # (Google News Índia, últimos 3 dias) + relatório final sucinto.
+            # Se qualquer etapa falhar, as narrativas básicas permanecem.
             if out:
+                try:
+                    def _dig(n: dict) -> list[dict]:
+                        q = n.get("busca") or n["titulo"]
+                        url = ("https://news.google.com/rss/search?q="
+                               + urllib.parse.quote(f"{q} when:3d")
+                               + "&hl=en-IN&gl=IN&ceid=IN:en")
+                        raw = fetch(url)
+                        extra: list[dict] = []
+                        if raw:
+                            seen_t = {normalize(m["title"]) for m in n["materias"]}
+                            for it in parse_feed(raw, "Aprofundamento")[:12]:
+                                tnorm = normalize(it["title"])
+                                if tnorm in seen_t:
+                                    continue
+                                seen_t.add(tnorm)
+                                extra.append({
+                                    "title": it["title"],
+                                    "source": canonical_source(it["outlet"]) if it["outlet"] else "",
+                                    "link": it["link"]})
+                                if len(extra) >= 8:
+                                    break
+                        return extra
+
+                    with ThreadPoolExecutor(max_workers=6) as ex2:
+                        extras = list(ex2.map(_dig, out))
+                    n_extra = sum(len(e) for e in extras)
+                    print(f"  [narrativas] aprofundamento: {n_extra} matérias "
+                          f"novas em {len(out)} buscas")
+
+                    sec = []
+                    for j, (n, ex_items) in enumerate(zip(out, extras)):
+                        lines = [f'NARRATIVA {j}: {n["titulo"]}',
+                                 f'  contexto: {n["texto"]}']
+                        for k, m in enumerate(n["materias"]):
+                            lines.append(f'  m{j}.{k}: "{m["title"]}" — {m["source"]}')
+                        for k, m in enumerate(ex_items):
+                            lines.append(f'  x{j}.{k}: "{m["title"]}" — {m["source"]}')
+                        sec.append("\n".join(lines))
+                    rep = _gemini_call(
+                        NARRATIVE_REPORT_PROMPT + "\n\n".join(sec),
+                        api_key, model_narr, 16384, deep=True)
+                    for r in (rep.get("narrativas", []) or []):
+                        if not isinstance(r, dict):
+                            continue
+                        try:
+                            j = int(r.get("n"))
+                        except (TypeError, ValueError):
+                            continue
+                        if not (0 <= j < len(out)):
+                            continue
+                        n = out[j]
+                        sint = (r.get("sintese") or "").strip()
+                        pontos = [str(p).strip() for p in (r.get("pontos") or [])
+                                  if str(p).strip()][:4]
+                        if sint:
+                            n["sintese"] = sint
+                        if pontos:
+                            n["pontos"] = pontos
+                        leitura = (r.get("leitura") or "").strip()
+                        if leitura:
+                            n["leitura"] = leitura
+                        brasil = (r.get("brasil") or "").strip()
+                        if brasil:
+                            n["brasil"] = brasil
+                        # Fontes extras escolhidas pelo relatório (cap total 5)
+                        ex_items = extras[j]
+                        for k in (r.get("extras") or [])[:3]:
+                            try:
+                                k = int(k)
+                            except (TypeError, ValueError):
+                                continue
+                            if 0 <= k < len(ex_items) and len(n["materias"]) < 5:
+                                n["materias"].append(ex_items[k])
+                except Exception as exc:  # noqa: BLE001 — fica a versão básica
+                    print(f"  ! aprofundamento das narrativas falhou "
+                          f"({str(exc)[:60]}) — mantendo versão básica")
+
+                for n in out:
+                    n.pop("busca", None)
                 quadro = res.get("quadro")
                 narratives = {"quadro": quadro.strip() if isinstance(quadro, str) else "",
                               "itens": out}
-        except Exception as exc:  # noqa: BLE001 — aba opcional, segue sem ela
+        except Exception as exc:  # noqa: BLE001 — bloco opcional, segue sem ele
             print(f"  ! Gemini (narrativas) falhou ({str(exc)[:60]})")
 
     print(f"  ✓ Gemini: {n_scored} matérias pontuadas, {len(highlights)} destaques "
