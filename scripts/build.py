@@ -839,6 +839,8 @@ TEMPLATE = r"""<!DOCTYPE html>
   main { padding: 22px 0 60px; }
   .sec-title { font-size: 17px; font-weight: 800; margin: 8px 0 16px; display: flex; align-items: center; gap: 10px; }
   .sec-title[hidden] { display: none; }
+  .sec-inline { grid-column: 1 / -1; font-size: 17px; font-weight: 800;
+    margin: 8px 0 0; display: flex; align-items: center; gap: 10px; }
   .sec-tag { font-size: 11px; font-weight: 700; color: #fff; background: #c2185b;
     padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: .3px; }
   .ai-mark { font-size: 10.5px; font-weight: 700; color: #c2185b; }
@@ -983,8 +985,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   const HL = DATA.highlights || [];
   const NARR = (DATA.narratives && (DATA.narratives.itens || []).length) ? DATA.narratives : null;
   const hlLinks = new Set(HL.map(a => a.link));
-  let inicio = HL.length > 0;            // página inicial = Destaques
-  let narrativas = false;                // aba "Narrativas do dia"
+  let inicio = HL.length > 0;            // página inicial = Narrativas + Destaques
   const activeThemes = new Set();        // temas selecionados (cumulativos)
   let activeSource = 'all';
   let query = '';
@@ -1022,10 +1023,9 @@ TEMPLATE = r"""<!DOCTYPE html>
   function updateChips() {
     document.querySelectorAll('.chip').forEach(c => {
       const k = c.dataset.key;
-      const on = k === 'inicio' ? (inicio && !narrativas)
-        : k === 'narrativas' ? narrativas
-        : k === 'all' ? (!inicio && !narrativas && activeThemes.size === 0)
-        : (!inicio && !narrativas && activeThemes.has(k));
+      const on = k === 'inicio' ? inicio
+        : k === 'all' ? (!inicio && activeThemes.size === 0)
+        : (!inicio && activeThemes.has(k));
       c.classList.toggle('active', on);
     });
   }
@@ -1038,11 +1038,10 @@ TEMPLATE = r"""<!DOCTYPE html>
       (color ? '<span class="dot" style="background:' + color + '"></span>' : '') +
       '<span>' + label + '</span><span class="count">' + count + '</span>';
     el.addEventListener('click', () => {
-      if (key === 'inicio') { inicio = true; narrativas = false; activeThemes.clear(); }
-      else if (key === 'narrativas') { narrativas = true; inicio = false; activeThemes.clear(); }
-      else if (key === 'all') { inicio = false; narrativas = false; activeThemes.clear(); }
+      if (key === 'inicio') { inicio = true; activeThemes.clear(); }
+      else if (key === 'all') { inicio = false; activeThemes.clear(); }
       else {
-        inicio = false; narrativas = false;
+        inicio = false;
         // Seleção única: clicar troca o tema; clicar no ativo volta a "Todos".
         if (activeThemes.has(key)) activeThemes.clear();
         else { activeThemes.clear(); activeThemes.add(key); }
@@ -1060,7 +1059,6 @@ TEMPLATE = r"""<!DOCTYPE html>
     return el;
   }
   if (HL.length) chipsEl.appendChild(makeChip('inicio', '🏠 Início', '#c2185b', HL.length));
-  if (NARR) chipsEl.appendChild(makeChip('narrativas', '🧭 Narrativas', '#0f766e', NARR.itens.length));
   chipsEl.appendChild(makeChip('all', 'Todos', '', counts.all));
   for (const k in THEMES) {
     chipsEl.appendChild(makeChip(k, THEMES[k].icon + ' ' + THEMES[k].label, THEMES[k].color, counts[k] || 0));
@@ -1130,47 +1128,50 @@ TEMPLATE = r"""<!DOCTYPE html>
       const k = ch.dataset.key;
       const span = ch.querySelector('.count');
       if (!span) return;
-      span.textContent = k === 'inicio' ? HL.length
-        : k === 'narrativas' ? (NARR ? NARR.itens.length : 0)
-        : (k === 'all' ? c.all : (c[k] || 0));
+      span.textContent = k === 'inicio' ? HL.length : (k === 'all' ? c.all : (c[k] || 0));
     });
   }
 
   function render() {
     updateCounts();
-    if (narrativas && NARR) {
-      // Aba analítica: quadro geral + narrativas com chaves de leitura.
-      // (Visão de síntese — não responde aos filtros de busca/jornal.)
-      viewTitle.innerHTML = '🧭 Narrativas do dia <span class="sec-tag">análise por IA</span>';
-      viewTitle.hidden = false;
-      const nColor = n => (n.temas && n.temas[0] && THEMES[n.temas[0]]) ? THEMES[n.temas[0]].color : '#c2185b';
-      const nBadges = n => (n.temas || []).filter(t => THEMES[t]).map(t =>
-        '<span class="badge" style="--bc:' + THEMES[t].color + '">' + THEMES[t].icon + ' ' + esc(THEMES[t].label) + '</span>').join('');
-      const nLinks = n => (n.materias || []).map(m =>
-        '<a href="' + esc(m.link) + '" target="_blank" rel="noopener">📄 ' + esc(m.title) +
-        ' <span class="s">— ' + esc(m.source) + '</span></a>').join('');
-      grid.innerHTML = '<div class="narr">' +
-        (NARR.quadro ? '<div class="narr-quadro"><span class="k">Quadro geral do dia</span>' + esc(NARR.quadro) + '</div>' : '') +
-        NARR.itens.map(n =>
-          '<div class="narr-card" style="--nc:' + nColor(n) + '">' +
-            '<h3>' + esc(n.titulo) + '</h3>' +
-            '<p class="txt">' + esc(n.texto) + '</p>' +
-            '<div class="badges">' + nBadges(n) + '</div>' +
-            ((n.materias || []).length ? '<div class="narr-links">' + nLinks(n) + '</div>' : '') +
-          '</div>').join('') +
-        '</div>';
-      empty.hidden = true;
+    let list;
+    if (inicio) {
+      // Página inicial integrada: Narrativas do dia (síntese analítica) em
+      // cima + Destaques do dia embaixo. Ao buscar/filtrar por jornal, o
+      // bloco de narrativas sai de cena para dar lugar ao resultado.
+      viewTitle.hidden = true;
+      list = HL.filter(matchFilters);
+      const parts = [];
+      const showNarr = NARR && !query.trim() && activeSource === 'all';
+      if (showNarr) {
+        const nColor = n => (n.temas && n.temas[0] && THEMES[n.temas[0]]) ? THEMES[n.temas[0]].color : '#c2185b';
+        const nBadges = n => (n.temas || []).filter(t => THEMES[t]).map(t =>
+          '<span class="badge" style="--bc:' + THEMES[t].color + '">' + THEMES[t].icon + ' ' + esc(THEMES[t].label) + '</span>').join('');
+        const nLinks = n => (n.materias || []).map(m =>
+          '<a href="' + esc(m.link) + '" target="_blank" rel="noopener">📄 ' + esc(m.title) +
+          ' <span class="s">— ' + esc(m.source) + '</span></a>').join('');
+        parts.push('<div class="narr">' +
+          '<h2 class="sec-inline">🧭 Narrativas do dia <span class="sec-tag">análise por IA</span></h2>' +
+          (NARR.quadro ? '<div class="narr-quadro"><span class="k">Quadro geral do dia</span>' + esc(NARR.quadro) + '</div>' : '') +
+          NARR.itens.map(n =>
+            '<div class="narr-card" style="--nc:' + nColor(n) + '">' +
+              '<h3>' + esc(n.titulo) + '</h3>' +
+              '<p class="txt">' + esc(n.texto) + '</p>' +
+              '<div class="badges">' + nBadges(n) + '</div>' +
+              ((n.materias || []).length ? '<div class="narr-links">' + nLinks(n) + '</div>' : '') +
+            '</div>').join('') +
+          '</div>');
+      }
+      if (list.length) {
+        const tag = DATA.meta.ai_curated ? 'curadoria por IA' : 'mais relevantes';
+        parts.push('<h2 class="sec-inline">✨ Destaques do dia <span class="sec-tag">' + tag + '</span></h2>');
+      }
+      grid.innerHTML = parts.join('') + list.map(cardHTML).join('');
+      empty.hidden = list.length !== 0 || showNarr;
       parseEmoji(grid);
       return;
     }
-    let list;
-    if (inicio) {
-      // Página inicial: somente os Destaques do dia (sem misturar o resto)
-      list = HL.filter(matchFilters);
-      const tag = DATA.meta.ai_curated ? 'curadoria por IA' : 'mais relevantes';
-      viewTitle.innerHTML = '✨ Destaques do dia <span class="sec-tag">' + tag + '</span>';
-      viewTitle.hidden = false;
-    } else {
+    {
       // Temas cumulativos (E/interseção): artigo só entra se tiver TODOS os
       // temas selecionados. Combina com origem/jornal/busca.
       list = articles.filter(a =>

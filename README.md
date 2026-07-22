@@ -67,12 +67,13 @@ internacional > demais), veículo de grande circulação, origem indiana,
 recência e cruzamento de temas.
 
 Opcionalmente, uma **camada de IA (Gemini)** gera os **Destaques do dia**,
-**resumos de 1 frase em português** e a aba **🧭 Narrativas do dia** — uma
-síntese analítica com o quadro geral do dia e as principais narrativas da
-imprensa indiana, com chaves de leitura e links para as matérias que as
-sustentam. É totalmente opcional e com *fallback* automático: sem a chave
-(ou se a cota/rede falhar), o painel funciona 100% com o ranking heurístico
-(e a aba de narrativas simplesmente não aparece).
+**resumos de 1 frase em português** e as **🧭 Narrativas do dia** — uma
+síntese analítica no topo da página Início, com o quadro geral do dia e as
+principais narrativas da imprensa indiana, chaves de leitura e links para as
+matérias que as sustentam (os Destaques vêm logo abaixo). É totalmente
+opcional e com *fallback* automático: sem a chave (ou se a cota/rede
+falhar), o painel funciona 100% com o ranking heurístico (e o bloco de
+narrativas simplesmente não aparece).
 
 **Ativar o Gemini (gratuito):**
 1. Crie uma API key em <https://aistudio.google.com/apikey> (free tier).
