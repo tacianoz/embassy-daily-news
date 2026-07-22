@@ -821,14 +821,14 @@ TEMPLATE = r"""<!DOCTYPE html>
 
   .chips { display: flex; gap: 5px; flex-wrap: wrap; }
   .chip {
-    display: inline-flex; align-items: center; gap: 5px; cursor: pointer; user-select: none;
+    display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;
     border: 1px solid var(--line); background: var(--card); color: var(--ink);
-    padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    padding: 6px 13px; border-radius: 999px; font-size: 13.5px; font-weight: 600;
     box-shadow: var(--shadow); transition: transform .08s ease, border-color .15s ease;
   }
   .chip:hover { transform: translateY(-1px); }
-  .chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cc, #999); }
-  .chip .count { color: var(--muted); font-weight: 600; font-size: 10.5px; opacity: .85; }
+  .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cc, #999); }
+  .chip .count { color: var(--muted); font-weight: 600; font-size: 11.5px; opacity: .85; }
   .chip.active { background: var(--cc, var(--accent)); border-color: transparent; color: #fff; }
   .chip.active .dot { box-shadow: 0 0 0 2px rgba(255,255,255,.6); }
   .chip.active .count { color: rgba(255,255,255,.85); }
@@ -993,7 +993,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   for (const k in THEMES) counts[k] = 0;
   for (const a of articles) for (const t of a.themes) counts[t] = (counts[t] || 0) + 1;
 
-  // Chips de filtro (Início e Todos são exclusivos; temas são cumulativos)
+  // Chips de filtro: seleção ÚNICA — um tema por vez (não cumulativo)
   function updateChips() {
     document.querySelectorAll('.chip').forEach(c => {
       const k = c.dataset.key;
@@ -1016,7 +1016,9 @@ TEMPLATE = r"""<!DOCTYPE html>
       else if (key === 'all') { inicio = false; activeThemes.clear(); }
       else {
         inicio = false;
-        if (activeThemes.has(key)) activeThemes.delete(key); else activeThemes.add(key);
+        // Seleção única: clicar troca o tema; clicar no ativo volta a "Todos".
+        if (activeThemes.has(key)) activeThemes.clear();
+        else { activeThemes.clear(); activeThemes.add(key); }
       }
       updateChips();
       render();
