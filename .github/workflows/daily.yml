@@ -1,13 +1,14 @@
 name: Atualização diária do dashboard
 
 on:
-  # Disparo principal: agendador externo (cron-job.org) via API, chamando este
-  # workflow_dispatch — é pontual, mas depende de um token que pode expirar.
-  # Por isso mantemos TAMBÉM o schedule nativo do GitHub como REDE DE SEGURANÇA:
-  # ele não usa token e nunca expira (pode atrasar/pular ocasionalmente, mas
-  # garante que o painel não congele se o gatilho externo falhar).
+  # Disparo principal: agendador externo (cron-job.org) via API às 00:30 UTC
+  # (06:00 em Nova Délhi) — pontual, mas depende de um token que pode expirar.
+  # REDE DE SEGURANÇA: o schedule nativo do GitHub (sem token, nunca expira),
+  # que na prática atrasa ~3h-3h30. Por isso ele é agendado BEM ANTES do alvo:
+  # 21:10 UTC (02:40 IST) + atraso típico ≈ edição entre 06h e 07h de Délhi.
+  # Se o cron-job.org estiver ativo, a edição das 06:00 em ponto sobrescreve.
   schedule:
-    - cron: "30 0 * * *"    # 00:30 UTC diário (backup sem token)
+    - cron: "10 21 * * *"   # backup: nominal 02:40 IST; real ~06h-07h IST
   workflow_dispatch:        # disparo diário (cron-job.org) e execução manual
   push:
     branches: [main]
