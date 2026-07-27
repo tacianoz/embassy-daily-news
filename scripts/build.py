@@ -1384,8 +1384,39 @@ NARRATIVES_PROMPT = (
     "APENAS nas matérias listadas — não invente fatos.\n"
     'Responda APENAS em JSON: {"quadro": "...", "narrativas": [{"titulo": '
     '"...", "texto": "...", "temas": ["..."], "itens": [0, 1], "busca": "..."}]}.\n\n'
-    "Matérias do dia:\n"
 )
+
+
+def _prev_narratives(max_days: int = 2) -> str:
+    """Narrativas das edições anteriores (snapshots do history/), para dar
+    memória editorial ao analista: evitar repetição e criar continuidade."""
+    hist_dir = os.environ.get("HISTORY_DIR", "history")
+    ist = timezone(timedelta(hours=5, minutes=30))
+    today = datetime.now(timezone.utc).astimezone(ist).strftime("%Y-%m-%d")
+    try:
+        files = sorted(
+            (fn for fn in os.listdir(hist_dir)
+             if re.fullmatch(r"data-\d{4}-\d{2}-\d{2}\.json", fn)
+             and fn != f"data-{today}.json"),
+            reverse=True)[:max_days]
+    except OSError:
+        return ""
+    blocks: list[str] = []
+    for fn in reversed(files):  # mais antiga primeiro (ordem cronológica)
+        try:
+            with open(os.path.join(hist_dir, fn), encoding="utf-8") as fh:
+                snap = json.load(fh)
+        except Exception:  # noqa: BLE001
+            continue
+        itens = ((snap or {}).get("narratives") or {}).get("itens") or []
+        if not itens:
+            continue
+        lines = [f"Edição de {fn[5:15]}:"]
+        for it in itens:
+            resumo = (it.get("sintese") or it.get("texto") or "")[:160]
+            lines.append(f"- {it.get('titulo', '')}: {resumo}")
+        blocks.append("\n".join(lines))
+    return "\n\n".join(blocks)
 
 
 NARRATIVE_REPORT_PROMPT = (
@@ -1912,7 +1943,24 @@ def gemini_enrich(articles: list[dict], now: datetime) -> tuple[list[dict], dict
             for i, a in enumerate(pool)
         )
         try:
-            res = _narr_call(NARRATIVES_PROMPT + listing, 16384)
+            # Memória editorial: narrativas das 2 edições anteriores entram
+            # como contexto — evita repetir "novidade" requentada e permite
+            # registrar EVOLUÇÃO quando o assunto continua.
+            prev_ctx = _prev_narratives()
+            if prev_ctx:
+                print("  [narrativas] contexto: edições anteriores carregadas")
+                id_prompt = (NARRATIVES_PROMPT
+                             + "CONTEXTO — temas das edições anteriores deste "
+                               "painel:\n" + prev_ctx + "\n\n"
+                               "Use o contexto assim: NÃO selecione como tema "
+                               "do dia um assunto já reportado que NÃO tenha "
+                               "fato novo hoje; quando o assunto CONTINUA com "
+                               "desdobramento real, selecione-o registrando a "
+                               "EVOLUÇÃO (o texto deve deixar claro o que é "
+                               "NOVO em relação ao já reportado).\n\n")
+            else:
+                id_prompt = NARRATIVES_PROMPT
+            res = _narr_call(id_prompt + "Matérias do dia:\n" + listing, 16384)
             out = []
             for n in (res.get("narrativas", []) or [])[:6]:
                 if not isinstance(n, dict):
