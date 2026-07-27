@@ -2,13 +2,12 @@ name: Atualização diária do dashboard
 
 on:
   # Disparo principal: agendador externo (cron-job.org) via API às 00:30 UTC
-  # (06:00 em Nova Délhi) — pontual, mas depende de um token que pode expirar.
-  # REDE DE SEGURANÇA: o schedule nativo do GitHub (sem token, nunca expira),
-  # que na prática atrasa ~3h-3h30. Por isso ele é agendado BEM ANTES do alvo:
-  # 21:10 UTC (02:40 IST) + atraso típico ≈ edição entre 06h e 07h de Délhi.
-  # Se o cron-job.org estiver ativo, a edição das 06:00 em ponto sobrescreve.
+  # (06:00 em Nova Délhi) — pontual (token expira 30/12/2026).
+  # GARANTIA: o schedule nativo do GitHub roda MAIS TARDE e SÓ gera edição se
+  # a das 06:00 não tiver saído (ver passo "Garantia" abaixo). Nominal 06:30
+  # IST; com o atraso típico do GitHub (~3h20), age por volta das 9h-10h IST.
   schedule:
-    - cron: "10 21 * * *"   # backup: nominal 02:40 IST; real ~06h-07h IST
+    - cron: "0 1 * * *"     # garantia: só builda se a edição do dia faltar
   workflow_dispatch:        # disparo diário (cron-job.org) e execução manual
   push:
     branches: [main]
@@ -35,6 +34,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      built: ${{ steps.guard.outputs.skip != 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -44,7 +45,24 @@ jobs:
         with:
           python-version: "3.12"
 
+      # O cron do GitHub é só GARANTIA: se a edição de hoje (data de Nova
+      # Délhi) já foi publicada pelo cron-job.org, não há o que fazer.
+      # Disparos manuais e por push sempre geram edição.
+      - name: Garantia — pula se a edição do dia já saiu
+        id: guard
+        if: github.event_name == 'schedule'
+        run: |
+          TODAY=$(TZ=Asia/Kolkata date +%F)
+          if [ -f "history/data-$TODAY.json" ]; then
+            echo "Edição de $TODAY já publicada — garantia dispensada."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Edição de $TODAY ainda não existe — gerando pela garantia."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Gerar dashboard
+        if: steps.guard.outputs.skip != 'true'
         run: python3 scripts/build.py
         env:
           OUTPUT_DIR: public
@@ -65,6 +83,7 @@ jobs:
       # Ontem / Anteontem) sobreviva entre execuções. Não falha o build se o
       # push não rolar (ex.: concorrência) — history/ não dispara o workflow.
       - name: Persistir histórico (3 dias)
+        if: steps.guard.outputs.skip != 'true'
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
@@ -74,15 +93,18 @@ jobs:
           git push
 
       - name: Configurar Pages
+        if: steps.guard.outputs.skip != 'true'
         uses: actions/configure-pages@v5
 
       - name: Enviar artefato
+        if: steps.guard.outputs.skip != 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: public
 
   deploy:
     needs: build
+    if: needs.build.outputs.built == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
