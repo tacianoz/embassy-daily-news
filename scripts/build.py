@@ -47,6 +47,14 @@ FEEDS = [
     # Cobertura indiana do Brasil e do entorno latino-americano.
     {"name": "Google News — Brasil/América Latina", "url": "https://news.google.com/rss/search?q=India+(Brazil+OR+%22Latin+America%22+OR+Mercosur+OR+%22South+America%22+OR+CELAC)&hl=en-IN&gl=IN&ceid=IN:en", "themes": ["brasil"]},
 
+    # Feeds de TÓPICO do Google News (curadoria do próprio Google, sem
+    # palavra-chave): agregam dezenas de veículos além dos nossos feeds
+    # diretos. Sem dica de tema — a classificação local (palavras-chave + IA)
+    # decide o que interessa; o resto cai como "sem_tema". Rede extra para
+    # grandes movimentos que escapem das buscas textuais.
+    {"name": "Google News — Índia (tópico)", "url": "https://news.google.com/rss/headlines/section/topic/NATION?hl=en-IN&gl=IN&ceid=IN:en", "themes": []},
+    {"name": "Google News — Negócios (tópico)", "url": "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-IN&gl=IN&ceid=IN:en", "themes": []},
+
     # Buscas dedicadas por tema (Google News) — garantem recall de assuntos
     # que os feeds de seção não cobrem (ex.: biocombustíveis). Só imprensa
     # indiana. O tema já vem carimbado via "themes".
