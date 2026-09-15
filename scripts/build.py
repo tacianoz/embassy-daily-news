@@ -323,7 +323,8 @@ THEMES = {
     },
 }
 
-USER_AGENT = "Mozilla/5.0 (compatible; EmbassyDailyNews/1.0; +https://github.com/tacianoz/embassy-daily-news)"
+USER_AGENT = ("Mozilla/5.0 (compatible; EmbassyDailyNews/1.0; +https://github.com/"
+              + os.environ.get("GITHUB_REPOSITORY", "tacianoz/embassy-daily-news") + ")")
 
 # Veículos indianos reconhecidos. Resultados de buscas agregadas (Google News)
 # só entram se a fonte estiver nesta lista — garante apenas imprensa indiana.

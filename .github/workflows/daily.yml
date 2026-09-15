@@ -1,14 +1,17 @@
 name: Atualização diária do dashboard
 
+# Este workflow funciona "de fábrica" em qualquer cópia do repositório (veja
+# INSTALAR.md): basta ativar o GitHub Pages (Source: GitHub Actions) e,
+# opcionalmente, cadastrar a secret GEMINI_API_KEY.
 on:
-  # Disparo principal: agendador externo (cron-job.org) via API às 00:30 UTC
-  # (06:00 em Nova Délhi) — pontual (token expira 30/12/2026).
-  # GARANTIA: o schedule nativo do GitHub roda MAIS TARDE e SÓ gera edição se
-  # a das 06:00 não tiver saído (ver passo "Garantia" abaixo). Nominal 06:30
-  # IST; com o atraso típico do GitHub (~3h20), age por volta das 9h-10h IST.
+  # Agendamento nativo do GitHub: 01:00 UTC (06:30 em Nova Délhi, 22:00 em
+  # Brasília). O GitHub costuma atrasar crons em 1-3 h. Quem quiser
+  # pontualidade pode disparar o workflow_dispatch por um agendador externo
+  # (ex.: cron-job.org via API) — nesse caso o passo "Garantia" evita uma
+  # segunda edição no mesmo dia.
   schedule:
-    - cron: "0 1 * * *"     # garantia: só builda se a edição do dia faltar
-  workflow_dispatch:        # disparo diário (cron-job.org) e execução manual
+    - cron: "0 1 * * *"
+  workflow_dispatch:        # execução manual (Actions → Run workflow)
   push:
     branches: [main]
     paths:
@@ -45,8 +48,40 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Verificação amigável ANTES de gastar tempo com o build: o GitHub não
+      # permite que o próprio workflow ative o Pages, então esse é o único
+      # passo manual da instalação. Se faltar, falha com instruções claras.
+      - name: Verificar se o GitHub Pages está ativado
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SETTINGS="https://github.com/$GITHUB_REPOSITORY/settings/pages"
+          if ! BUILD_TYPE=$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq '.build_type' 2>/dev/null); then
+            echo "::error::GitHub Pages ainda não está ativado. Abra $SETTINGS, em 'Build and deployment → Source' escolha 'GitHub Actions' e rode este workflow de novo (Actions → Run workflow)."
+            exit 1
+          fi
+          if [ "$BUILD_TYPE" != "workflow" ]; then
+            echo "::error::GitHub Pages está configurado como '$BUILD_TYPE'. Abra $SETTINGS e mude 'Source' para 'GitHub Actions'; depois rode o workflow de novo."
+            exit 1
+          fi
+          echo "GitHub Pages ativado (Source: GitHub Actions) ✔"
+
+      # Cópias criadas a partir do modelo ("Use this template") herdam os
+      # snapshots do repositório original. Na primeira execução em um
+      # repositório novo, descarta esse histórico para o menu Hoje/Ontem/
+      # Anteontem começar limpo. O marcador history/.repo identifica o dono.
+      - name: Primeira execução — descarta histórico herdado do modelo
+        run: |
+          mkdir -p history
+          if [ -f history/.repo ] && [ "$(cat history/.repo)" != "$GITHUB_REPOSITORY" ]; then
+            echo "Histórico herdado de $(cat history/.repo) — descartando snapshots."
+            rm -f history/data-*.json
+          fi
+          echo "$GITHUB_REPOSITORY" > history/.repo
+
       # O cron do GitHub é só GARANTIA: se a edição de hoje (data de Nova
-      # Délhi) já foi publicada pelo cron-job.org, não há o que fazer.
+      # Délhi) já foi publicada por um disparo externo, não há o que fazer.
+      # Sem agendador externo, o cron gera a edição do dia normalmente.
       # Disparos manuais e por push sempre geram edição.
       - name: Garantia — pula se a edição do dia já saiu
         id: guard

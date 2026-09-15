@@ -1,5 +1,7 @@
 # 🇮🇳→🇧🇷 Índia em Foco — Monitor de Notícias para o Brasil
 
+> **Quer uma cópia sua?** [Use this template](https://github.com/tacianoz/embassy-daily-news/generate) e siga o [INSTALAR.md](INSTALAR.md) (4 passos, ~5 min).
+
 Dashboard estático, atualizado **automaticamente todas as manhãs**, com notícias
 indianas relevantes para o Brasil. As matérias são coletadas via **RSS** de
 grandes veículos da Índia, classificadas por tema e exibidas em um painel
@@ -38,14 +40,23 @@ interativo com manchetes, resumos e link de acesso.
 - As manchetes e resumos são mantidos **no idioma original (inglês)**; a
   interface é em português.
 
+## Quer rodar a sua própria cópia?
+
+Este repositório é um **modelo**: com o botão **Use this template** você cria
+uma cópia independente na sua conta, com a sua chave de API e o seu endereço
+`https://SEU-USUARIO.github.io/NOME-DO-REPO/`. O passo a passo (4 passos,
+~5 minutos, sem instalar nada) está em **[INSTALAR.md](INSTALAR.md)**.
+
 ## Ativando o GitHub Pages (uma única vez)
 
-1. Faça o merge deste branch na `main`.
-2. No repositório: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-3. O workflow roda diariamente às 10:00 UTC (07:00 Brasília). Para rodar na
-   hora, vá em **Actions → "Atualização diária do dashboard" → Run workflow**.
-4. A página ficará disponível em
-   `https://tacianoz.github.io/embassy-daily-news/`.
+1. No repositório: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+   (O workflow verifica isso logo no início e, se faltar, falha com a
+   instrução na tela.)
+2. Opcional: cadastre a secret `GEMINI_API_KEY` (veja *Ranking e curadoria por IA*).
+3. O workflow roda diariamente às 01:00 UTC (06:30 Nova Délhi / 22:00 Brasília).
+   Para rodar na hora, vá em **Actions → "Atualização diária do dashboard" → Run workflow**.
+4. A página ficará disponível em `https://SEU-USUARIO.github.io/NOME-DO-REPO/`
+   (para este repositório: <https://tacianoz.github.io/embassy-daily-news/>).
 
 ## Rodando localmente
 
